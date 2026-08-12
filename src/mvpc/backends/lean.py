@@ -473,7 +473,7 @@ class LeanBackend(VerificationBackend):
                         _finding(
                             "LEAN_Z3_VACUOUS",
                             Severity.VIOLATION,
-                            f"Z3: hypotheses of {decl['name']} are UNSAT ({'; ' | '.join(models)})",
+                            f"Z3: hypotheses of {decl['name']} are UNSAT ({'; '.join(models)})",
                             "LeanZ3",
                             line_of(stripped, decl["decl_start"]),
                         )
