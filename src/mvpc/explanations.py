@@ -3,6 +3,40 @@
 from typing import Dict
 
 EXPLANATIONS: Dict[str, Dict[str, str]] = {
+    "SYSTEM_INTEGRITY_FAILURE": {
+        "title": "Verifier Self-Integrity Failure",
+        "explanation": (
+            "MVPC-X fingerprints its own installed package before ingesting an artifact, "
+            "optionally mid-run, and again after processing. The fingerprint changed — "
+            "the verifier on disk is not the same system that started the run. "
+            "A malicious or concurrent modification may have corrupted MVPC-X."
+        ),
+        "action": (
+            "Stop trusting this host install. Reinstall MVPC-X from a known-good source, "
+            "run `mvpc integrity --verify-twice`, and re-audit in a clean environment."
+        ),
+    },
+    "ARTIFACT_MUTATION": {
+        "title": "Artifact Changed During Audit",
+        "explanation": (
+            "The input file's SHA-256 after the run does not match the hash taken before "
+            "backends ran. Something modified the artifact mid-flight."
+        ),
+        "action": "Re-run against a stable copy; avoid editing files during audit.",
+    },
+    "INTAKE_BLOCKED": {
+        "title": "Intake Security Rejected Path",
+        "explanation": (
+            "The path failed pre-ingest guards (missing file, symlink policy, size limit, "
+            "or blocked executable-like extension). Backends never ran."
+        ),
+        "action": "See intake reasons; use a regular source file under size limits. For symlinks, pass --allow-symlinks only if you trust the link.",
+    },
+    "INTAKE_WARNING": {
+        "title": "Intake Warning",
+        "explanation": "The path was allowed but has suspicious properties (e.g. world-writable).",
+        "action": "Harden file permissions or placement before treating results as high assurance.",
+    },
     "NO_BACKEND": {
         "title": "No Verification Backend",
         "explanation": "No registered backend claimed this artifact. Nothing machine-checked it.",
@@ -40,17 +74,17 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "LEAN_SORRY": {
         "title": "Incomplete Proof (Sorry Bypass)",
-        "explanation": "Proof contains 'sorry' or 'admit' \u2014 a placeholder, not a closed proof.",
+        "explanation": "Proof contains 'sorry' or 'admit' — a placeholder, not a closed proof.",
         "action": "Replace sorry/admit with real proof tactics or lemmas.",
     },
     "LEAN_ADMIT": {
         "title": "Incomplete Proof (Admit Bypass)",
-        "explanation": "Proof contains 'admit' \u2014 unproven goal skipped.",
+        "explanation": "Proof contains 'admit' — unproven goal skipped.",
         "action": "Complete all proof goals without admit.",
     },
     "LEAN_AXIOM": {
         "title": "Bare Axiom Declaration",
-        "explanation": "Source declares a new axiom with no proof \u2014 unproven foundation smuggled into the file.",
+        "explanation": "Source declares a new axiom with no proof — unproven foundation smuggled into the file.",
         "action": "Prove as a theorem or explicitly disclose and allowlist the axiom in policy.",
     },
     "LEAN_AXIOM_SMUGGLE": {
@@ -60,12 +94,12 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "LEAN_KERNEL_SORRY_AX": {
         "title": "Kernel-Confirmed Sorry (sorryAx)",
-        "explanation": "The Lean kernel itself reports sorryAx \u2014 the proof does not close, even if text scan is ambiguous.",
+        "explanation": "The Lean kernel itself reports sorryAx — the proof does not close.",
         "action": "Locate the real gap and complete the proof with kernel-checked tactics.",
     },
     "LEAN_NATIVE_DECIDE": {
         "title": "Unchecked Native Evaluation (native_decide)",
-        "explanation": "Depends on Lean.ofReduceBool / native_decide \u2014 trusts compiler reduction, not only the kernel.",
+        "explanation": "Depends on Lean.ofReduceBool / native_decide — trusts compiler reduction, not only the kernel.",
         "action": "Prefer kernel-checked decide or an explicit proof term.",
     },
     "LEAN_COMPILE_ERROR": {
@@ -80,7 +114,7 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "LEAN_TAUTOLOGY": {
         "title": "Proving Nothing (Tautological Bypass)",
-        "explanation": "Theorem reduces to True via trivial/rfl/decide/True.intro \u2014 no mathematical content.",
+        "explanation": "Theorem reduces to True via trivial/rfl/decide/True.intro — no mathematical content.",
         "action": "Restate a nontrivial claim and prove that.",
     },
     "LEAN_Z3_VACUOUS": {
@@ -90,13 +124,13 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "LEAN_SYMPY_MISMATCH": {
         "title": "Equation Drift (Symbolic Mismatch)",
-        "explanation": "SymPy could not verify LHS \u2261 RHS for a bare equation theorem target.",
+        "explanation": "SymPy could not verify LHS equals RHS for a bare equation theorem target.",
         "action": "Check algebraic balance of the stated equation.",
     },
     "LEAN_KERNEL_NEVER_RAN": {
         "title": "Kernel Verification Never Happened",
-        "explanation": "Native Lean kernel did not successfully audit axioms (missing tool, timeout, or unparseable output).",
-        "action": "Install/repair Lean toolchain and re-run. Do not treat static-only results as full VERIFIED under DEFAULT/STRICT.",
+        "explanation": "Native Lean kernel did not successfully audit axioms.",
+        "action": "Install/repair Lean toolchain and re-run.",
     },
     "LEAN_NO_LAKE_PROJECT": {
         "title": "No Lake Project Detected",
@@ -120,12 +154,12 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "ISABELLE_SORRY": {
         "title": "Isabelle Sorry / Oops Placeholder",
-        "explanation": "Theory text contains sorry or oops \u2014 unfinished proof.",
+        "explanation": "Theory text contains sorry or oops — unfinished proof.",
         "action": "Complete the Isabelle proof without sorry/oops.",
     },
     "ISABELLE_AXIOM": {
         "title": "Isabelle Axiomatization",
-        "explanation": "axiomatization or unproven foundational assert found in theory source.",
+        "explanation": "axiomatization found in theory source.",
         "action": "Disclose or replace with a proved lemma.",
     },
     "ISABELLE_BUILD_FAILED": {
