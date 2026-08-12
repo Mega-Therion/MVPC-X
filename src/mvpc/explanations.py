@@ -1,9 +1,8 @@
 """Central explanation and remediation dictionary for MVPC-X findings."""
 
-from typing import Dict, Any
+from typing import Dict
 
 EXPLANATIONS: Dict[str, Dict[str, str]] = {
-    # --- Universal / Governance ---
     "NO_BACKEND": {
         "title": "No Verification Backend",
         "explanation": "No registered backend claimed this artifact. Nothing machine-checked it.",
@@ -29,60 +28,99 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
         "explanation": "The file changed since provenance was recorded. The audit no longer binds to these bytes.",
         "action": "Re-run full audit and refresh provenance on the current file.",
     },
-
-    # --- Lean 4 Backend ---
+    "STATIC_ERROR": {
+        "title": "Static Analysis Error",
+        "explanation": "The static analyzer hit an unexpected error while reading or parsing the artifact.",
+        "action": "Check file encoding/permissions and re-run; report a bug if it persists.",
+    },
+    "NATIVE_ERROR": {
+        "title": "Native Tool Error",
+        "explanation": "A native toolchain invocation failed unexpectedly (not a clean compile error).",
+        "action": "Inspect the tool installation and environment, then re-run.",
+    },
     "LEAN_SORRY": {
         "title": "Incomplete Proof (Sorry Bypass)",
-        "explanation": "Proof contains 'sorry' — a placeholder, not a closed proof.",
-        "action": "Replace 'sorry' with real proof tactics or lemmas.",
+        "explanation": "Proof contains 'sorry' or 'admit' \u2014 a placeholder, not a closed proof.",
+        "action": "Replace sorry/admit with real proof tactics or lemmas.",
     },
     "LEAN_ADMIT": {
         "title": "Incomplete Proof (Admit Bypass)",
-        "explanation": "Proof contains 'admit' — unproven goal skipped.",
+        "explanation": "Proof contains 'admit' \u2014 unproven goal skipped.",
         "action": "Complete all proof goals without admit.",
     },
     "LEAN_AXIOM": {
-        "title": "Axiom Usage in Lean Source",
-        "explanation": "Source declares or depends on axioms outside standard foundational logic.",
-        "action": "Prove as theorem or ensure axiom is explicitly allowlisted in policy.",
+        "title": "Bare Axiom Declaration",
+        "explanation": "Source declares a new axiom with no proof \u2014 unproven foundation smuggled into the file.",
+        "action": "Prove as a theorem or explicitly disclose and allowlist the axiom in policy.",
+    },
+    "LEAN_AXIOM_SMUGGLE": {
+        "title": "Illegal Assumption (Axiom Smuggling)",
+        "explanation": "Lean kernel reports dependence on a non-allowlisted axiom (beyond propext/Quot.sound/Classical.choice).",
+        "action": "Remove the axiom dependency or expand the allowlist only with explicit disclosure.",
+    },
+    "LEAN_KERNEL_SORRY_AX": {
+        "title": "Kernel-Confirmed Sorry (sorryAx)",
+        "explanation": "The Lean kernel itself reports sorryAx \u2014 the proof does not close, even if text scan is ambiguous.",
+        "action": "Locate the real gap and complete the proof with kernel-checked tactics.",
     },
     "LEAN_NATIVE_DECIDE": {
         "title": "Unchecked Native Evaluation (native_decide)",
-        "explanation": "Depends on Lean.ofReduceBool — trusts the compiler rather than only the kernel.",
-        "action": "Prefer kernel-checked 'decide' or an explicit proof term.",
+        "explanation": "Depends on Lean.ofReduceBool / native_decide \u2014 trusts compiler reduction, not only the kernel.",
+        "action": "Prefer kernel-checked decide or an explicit proof term.",
     },
     "LEAN_COMPILE_ERROR": {
         "title": "Lean Native Compilation Error",
-        "explanation": "The Lean compiler / lake build rejected the file.",
+        "explanation": "The Lean compiler / lake env rejected the file or failed before axiom audit.",
         "action": "Inspect compiler error output, fix syntax/type errors, and re-run.",
     },
     "LEAN_UNSAFE": {
         "title": "Unsafe Lean Declaration",
         "explanation": "'unsafe' opts out of Lean safety and termination checking.",
-        "action": "Remove 'unsafe' or isolate it from the trusted mathematical surface.",
+        "action": "Remove unsafe or isolate it from the trusted mathematical surface.",
     },
-
-    # --- Coq Backend ---
+    "LEAN_TAUTOLOGY": {
+        "title": "Proving Nothing (Tautological Bypass)",
+        "explanation": "Theorem reduces to True via trivial/rfl/decide/True.intro \u2014 no mathematical content.",
+        "action": "Restate a nontrivial claim and prove that.",
+    },
+    "LEAN_Z3_VACUOUS": {
+        "title": "Vacuous Truth (Contradictory Hypotheses)",
+        "explanation": "Z3 proved binder hypotheses unsatisfiable; anything follows vacuously.",
+        "action": "Fix contradictory hypotheses in the theorem binders.",
+    },
+    "LEAN_SYMPY_MISMATCH": {
+        "title": "Equation Drift (Symbolic Mismatch)",
+        "explanation": "SymPy could not verify LHS \u2261 RHS for a bare equation theorem target.",
+        "action": "Check algebraic balance of the stated equation.",
+    },
+    "LEAN_KERNEL_NEVER_RAN": {
+        "title": "Kernel Verification Never Happened",
+        "explanation": "Native Lean kernel did not successfully audit axioms (missing tool, timeout, or unparseable output).",
+        "action": "Install/repair Lean toolchain and re-run. Do not treat static-only results as full VERIFIED under DEFAULT/STRICT.",
+    },
+    "LEAN_NO_LAKE_PROJECT": {
+        "title": "No Lake Project Detected",
+        "explanation": "No lakefile near the target; Mathlib imports may fail under bare lean.",
+        "action": "Run inside a Lake project when the file has external imports.",
+    },
     "COQ_ADMIT": {
         "title": "Coq Incomplete Proof (Admitted)",
-        "explanation": "Proof contains 'admit' or ends with 'Admitted' without closure.",
-        "action": "Finish all subgoals and end with 'Qed.'",
+        "explanation": "Proof contains admit or ends with Admitted without closure.",
+        "action": "Finish all subgoals and end with Qed.",
     },
     "COQ_AXIOM": {
         "title": "Coq Axiom Declaration",
         "explanation": "Source declares unproven Axiom / Parameter.",
-        "action": "Prove as Theorem or verify axiom is in the allowed axioms set.",
+        "action": "Prove as Theorem or verify axiom is allowlisted.",
     },
     "COQ_COMPILE_ERROR": {
         "title": "Coq Compilation Failed",
         "explanation": "coqc rejected the file; proof script did not verify.",
         "action": "Fix Coq errors until coqc succeeds, then re-audit.",
     },
-
-    # --- Isabelle/HOL Backend ---
     "ISABELLE_SORRY": {
         "title": "Isabelle Sorry / Oops Placeholder",
-        "explanation": "Theory text contains 'sorry' or 'oops' — unfinished proof.",
+        "explanation": "Theory text contains sorry or oops \u2014 unfinished proof.",
         "action": "Complete the Isabelle proof without sorry/oops.",
     },
     "ISABELLE_AXIOM": {
@@ -97,20 +135,18 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "ISABELLE_NOT_FOUND": {
         "title": "Isabelle Toolchain Missing",
-        "explanation": "'isabelle' executable not found on PATH.",
-        "action": "Install Isabelle and ensure 'isabelle' is available in your PATH.",
+        "explanation": "isabelle executable not found on PATH.",
+        "action": "Install Isabelle and ensure isabelle is available in PATH.",
     },
-
-    # --- Python & Math Engine ---
     "PY_EXEC": {
         "title": "Dynamic Code Execution (exec)",
-        "explanation": "Dangerous 'exec()' call found in verification surface.",
+        "explanation": "Dangerous exec() call found in verification surface.",
         "action": "Eliminate dynamic string execution from trusted code.",
     },
     "PY_EVAL": {
         "title": "Dynamic Expression Evaluation (eval)",
-        "explanation": "Dangerous 'eval()' call found in verification surface.",
-        "action": "Use safe literal parsing or abstract syntax tree evaluation.",
+        "explanation": "Dangerous eval() call found in verification surface.",
+        "action": "Use safe literal parsing or AST evaluation.",
     },
     "PY_OS_SYSTEM": {
         "title": "System Shell Execution",
@@ -129,12 +165,12 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
     "PY_IDENTITY_FAIL": {
         "title": "Symbolic Identity Failed (SymPy)",
-        "explanation": "Claimed mathematical identity does not simplify to zero difference (LHS != RHS).",
+        "explanation": "Claimed mathematical identity does not simplify to zero difference.",
         "action": "Check algebraic balance of the stated equation.",
     },
     "PY_CONSTRAINT_UNSAT": {
         "title": "Constraint Set Contradictory (Z3 UNSAT)",
-        "explanation": "Declared constraints are mutually contradictory (unsatisfiable).",
+        "explanation": "Declared constraints are mutually contradictory.",
         "action": "Fix the binder hypotheses or constraint definitions.",
     },
     "PY_NUMERIC_DRIFT": {
@@ -154,10 +190,14 @@ EXPLANATIONS: Dict[str, Dict[str, str]] = {
     },
 }
 
+
 def get_explanation(code: str) -> Dict[str, str]:
     """Retrieve explanation metadata for a given finding code."""
-    return EXPLANATIONS.get(code, {
-        "title": code,
-        "explanation": "No detailed explanation available for this code.",
-        "action": "Review the finding message and source context."
-    })
+    return EXPLANATIONS.get(
+        code,
+        {
+            "title": code,
+            "explanation": "No detailed explanation available for this code.",
+            "action": "Review the finding message and source context.",
+        },
+    )

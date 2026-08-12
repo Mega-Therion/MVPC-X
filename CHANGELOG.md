@@ -7,20 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [7.1.0] - 2026-08-12
+## [7.2.0] - 2026-08-12
 
-### Biomechanical & Multi-Prover Integration
+### Full works: Lean gold standard, covenant constitution, real tests, golden demo
 
 #### Features
-- **Isabelle/HOL Backend (`mvpc.backends.isabelle`):** Full integration with Isabelle theory (`.thy`) and session (`ROOT`) build auditing with static AST traps for `sorry`, `oops`, and `axiomatization`.
-- **Inline Symbolic, SMT & Numeric Math Claim Engine:** Enhanced Python backend to parse inline `# MVPC-CLAIM` / `# BIOMECH-CLAIM` directives:
-  - `identity: <LHS> == <RHS>` (Algebraic simplification via SymPy CAS).
-  - `constraint: <expr>` (Satisfiability / non-contradiction via Z3 SMT solver).
-  - `numeric: <expr> samples=x:...` (Numerical point sampling via NumPy).
-- **Human Attestation CLI Workflow (`mvpc attest`):** Interactive subcommand to rehydrate machine witnesses, attach human review signatures/notes, and cryptographically seal updated witness hash chains.
-- **Pedagogical Remediation Dictionary (`mvpc.explanations`):** Built-in "Why this failed & How to fix it" guidance for every error code, embedded into terminal and markdown reports.
-- **Enhanced Governance CLI Flags:** Added `--ai-prompt-file`, `--ai-model`, `--require-ai-provenance`, and `--require-human` flags to `mvpc audit`.
-- **Zero-Dep Timezone-Aware Datetimes:** Completely migrated internal timestamps to standard `datetime.now(timezone.utc)`.
+- **Lean backend gold standard:** Comment stripping; depth-aware theorem binder/statement scan; bare `axiom` / `unsafe` / tautology traps; env probe (lake/mathlib/version); native `lake env lean` / `lean` with `#print axioms`; kernel allowlist + `sorryAx` / `Lean.ofReduceBool`; optional Z3 vacuous-hypothesis and SymPy identity layers.
+- **Covenant constitution:** `COVENANT.md` expanded into the full biomechanical human-AI standard (roles, attestation law, witness law, prohibited behaviors).
+- **Golden witness demo:** `examples/golden/` with README + `extract_and_attest.py` end-to-end path.
+- **Explanations:** New Lean codes (`LEAN_KERNEL_SORRY_AX`, `LEAN_AXIOM_SMUGGLE`, `LEAN_TAUTOLOGY`, `LEAN_Z3_VACUOUS`, `LEAN_SYMPY_MISMATCH`, `LEAN_KERNEL_NEVER_RAN`, `LEAN_NO_LAKE_PROJECT`, and related).
+
+#### Tests
+- Replaced stub tests in `test_claim`, `test_evidence`, `test_hashing`, `test_trust`, `test_witness` with real assertions (serialization, hash tamper detection, witness reseal on human attestation).
+- Added fixtures `tautology.lean`, `vacuous.lean`.
+
+---
+
+## [7.1.0] - 2026-08-12
+
+### Biomechanical and Multi-Prover Integration
+
+#### Features
+- **Isabelle/HOL Backend (`mvpc.backends.isabelle`)**
+- **Inline Symbolic, SMT and Numeric Math Claim Engine** (`# MVPC-CLAIM` / `# BIOMECH-CLAIM`)
+- **Human Attestation CLI Workflow (`mvpc attest`)**
+- **Pedagogical Remediation Dictionary (`mvpc.explanations`)**
+- **Enhanced Governance CLI Flags**
+- **Timezone-aware UTC datetimes**
 
 ---
 
@@ -29,9 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Initial Sovereign Release of MVPC-X
 
 #### Features
-- **Core Primitives:** Introduced atomic `Claim`, `Evidence`, `Verification`, `Provenance`, and `Witness` data structures.
-- **Trust & Attestation Model:** Evaluates claims into `VERIFIED`, `CONDITIONAL`, `REJECTED`, and `UNVERIFIED` states proportional to verified mechanical checks.
-- **Policy Engine:** Supports `PERMISSIVE`, `DEFAULT`, and `STRICT` policy levels with customizable axiom allowlists and pattern blocking.
-- **Multi-Backend Engine:** Lean 4, Coq, Python static/dynamic, and Generic cryptographic file hasher.
-- **Cryptographic Witness Chains:** Generates self-verifying SHA-256 witness records.
-- **CLI Interface:** Provides `mvpc audit`, `mvpc witness verify`, directory scanning, and JSON export.
+- **Core Primitives:** Claim, Evidence, Verification, Provenance, and Witness
+- **Trust and Attestation Model:** VERIFIED, CONDITIONAL, REJECTED, UNVERIFIED
+- **Policy Engine:** PERMISSIVE, DEFAULT, STRICT
+- **Multi-Backend Engine:** Lean 4, Coq, Python, Generic hasher
+- **Cryptographic Witness Chains**
+- **CLI:** `mvpc audit`, `mvpc witness verify`, directory scanning, JSON export
