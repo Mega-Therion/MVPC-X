@@ -1,0 +1,12 @@
+claim:
+  statement: "The Pythagorean theorem holds for the triple (3, 4, 5)"
+  origin: human
+  scope: "Elementary number theory"
+  assumptions:
+    - "Standard Euclidean geometry"
+    - "Integer arithmetic"
+  evidence:
+    - type: computation
+      path: clean.py
+    - type: formal_proof  
+      path: clean.lean

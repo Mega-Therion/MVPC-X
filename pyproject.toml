@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mvpc"
+version = "7.0.0"
+authors = [
+  { name = "Sovereign Physics Lab", email = "viewsbyryan@gmail.com" },
+]
+description = "MVPC-X — Sovereign claim-verification infrastructure. Turns claims into auditable evidence chains."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/Mega-Therion/MVPC-X"
+Repository = "https://github.com/Mega-Therion/MVPC-X.git"
+Issues = "https://github.com/Mega-Therion/MVPC-X/issues"
+Changelog = "https://github.com/Mega-Therion/MVPC-X/blob/main/CHANGELOG.md"
+
+[project.scripts]
+mvpc = "mvpc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
