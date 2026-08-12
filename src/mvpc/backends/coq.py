@@ -1,11 +1,15 @@
 import os
+import re
 import subprocess
+from datetime import datetime, timezone
 from typing import List, Tuple
+from shutil import which
+
 from mvpc.backends.base import VerificationBackend
 from mvpc.trust import Finding, Severity, CoverageReport
 from mvpc.evidence import Evidence, EvidenceType
 from mvpc.hashing import hash_file
-from datetime import datetime
+from mvpc.explanations import get_explanation
 
 class CoqBackend(VerificationBackend):
     def name(self) -> str:
@@ -18,28 +22,47 @@ class CoqBackend(VerificationBackend):
         return any(path.endswith(ext) for ext in self.supported_extensions())
         
     def check_native_available(self) -> bool:
-        from shutil import which
         return which("coqc") is not None
 
     def run_static_analysis(self, path: str) -> Tuple[List[Finding], List[Evidence]]:
         findings = []
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8', errors='replace') as f:
                 lines = f.readlines()
                 
-            for i, line in enumerate(lines):
-                if 'Admitted.' in line:
-                    findings.append(Finding(code="COQ_ADMIT", severity=Severity.VIOLATION, message="Use of 'Admitted' detected", system="CoqStatic", line=i+1))
-                if 'Axiom ' in line:
-                    findings.append(Finding(code="COQ_AXIOM", severity=Severity.WARNING, message="Axiom usage detected", system="CoqStatic", line=i+1))
+            for i, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if stripped.startswith("(*") and stripped.endswith("*)"):
+                    continue
+
+                if re.search(r"\b(Admitted|admit)\b", line):
+                    exp = get_explanation("COQ_ADMIT")
+                    findings.append(Finding(
+                        code="COQ_ADMIT",
+                        severity=Severity.VIOLATION,
+                        message="Use of 'Admitted' / 'admit' placeholder detected",
+                        system="CoqStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
+                if re.match(r"^\s*Axiom\s+\S+", line):
+                    exp = get_explanation("COQ_AXIOM")
+                    findings.append(Finding(
+                        code="COQ_AXIOM",
+                        severity=Severity.WARNING,
+                        message=f"Bare Axiom declared: {line.strip()}",
+                        system="CoqStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
 
         except Exception as e:
             findings.append(Finding(code="STATIC_ERROR", severity=Severity.WARNING, message=str(e), system="CoqStatic"))
             
         ev = Evidence(
             evidence_type=EvidenceType.STATIC_ANALYSIS,
-            description="Coq static analysis",
-            timestamp=datetime.utcnow().isoformat(),
+            description="Coq static syntax analysis",
+            timestamp=datetime.now(timezone.utc).isoformat(),
             artifact_path=path,
             artifact_hash=hash_file(path)
         )
@@ -52,13 +75,20 @@ class CoqBackend(VerificationBackend):
             return findings, evidence
             
         try:
-            res = subprocess.run(["coqc", path], capture_output=True, text=True)
+            res = subprocess.run(["coqc", path], capture_output=True, text=True, timeout=120)
             if res.returncode != 0:
-                findings.append(Finding(code="COQ_COMPILE_ERROR", severity=Severity.VIOLATION, message=res.stderr, system="CoqNative"))
+                exp = get_explanation("COQ_COMPILE_ERROR")
+                findings.append(Finding(
+                    code="COQ_COMPILE_ERROR",
+                    severity=Severity.VIOLATION,
+                    message=res.stderr or res.stdout,
+                    system="CoqNative",
+                    remediation=exp["action"]
+                ))
             ev = Evidence(
                 evidence_type=EvidenceType.NATIVE_VERIFICATION,
                 description="Coq native compilation",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 artifact_path=path,
                 artifact_hash=hash_file(path)
             )

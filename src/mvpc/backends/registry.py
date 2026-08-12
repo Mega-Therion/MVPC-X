@@ -2,6 +2,7 @@ from typing import List, Optional
 from mvpc.backends.base import VerificationBackend
 from mvpc.backends.lean import LeanBackend
 from mvpc.backends.coq import CoqBackend
+from mvpc.backends.isabelle import IsabelleBackend
 from mvpc.backends.python import PythonBackend
 from mvpc.backends.generic import GenericBackend
 
@@ -23,5 +24,6 @@ def get_default_registry() -> BackendRegistry:
     registry = BackendRegistry()
     registry.register(LeanBackend())
     registry.register(CoqBackend())
+    registry.register(IsabelleBackend())
     registry.register(PythonBackend())
     return registry

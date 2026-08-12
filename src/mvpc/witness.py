@@ -1,7 +1,7 @@
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from mvpc.claim import Claim
@@ -16,7 +16,7 @@ class Witness:
     claim_id: str
     artifact_path: str
     artifact_hash: str
-    environment: Dict[str, str]
+    environment: Dict[str, Any]
     policy: Dict[str, Any]
     checks_performed: List[str]
     findings: List[Dict[str, Any]]
@@ -26,6 +26,7 @@ class Witness:
     remediation: Optional[str]
     human_review_obligations: List[str]
     timestamp: str
+    human_attestations: List[Dict[str, Any]] = field(default_factory=list)
     witness_hash: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -34,6 +35,13 @@ class Witness:
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=2)
 
+    def recompute_hash(self) -> str:
+        """Recompute and set the self-verifying SHA-256 root hash."""
+        d = self.to_dict()
+        d.pop('witness_hash', None)
+        self.witness_hash = hash_dict(d)
+        return self.witness_hash
+
     def verify_integrity(self) -> bool:
         """Verify the self-hash of this witness."""
         d = self.to_dict()
@@ -41,21 +49,54 @@ class Witness:
         computed_hash = hash_dict(d)
         return provided_hash == computed_hash
 
+    def add_human_attestation(self, signer: str, notes: str = "", accepted: bool = True) -> None:
+        """Attach a human signature / review notes and seal the witness."""
+        attestation = {
+            "signer": signer,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "notes": notes,
+            "accepted": accepted,
+        }
+        self.human_attestations.append(attestation)
+        # Clear missing human attestation findings if accepted
+        if accepted:
+            self.findings = [f for f in self.findings if f.get('code') != 'HUMAN_ATTESTATION_MISSING']
+            self.human_review_obligations = []
+        self.recompute_hash()
+
     def to_markdown(self) -> str:
         """Generate human-readable markdown report for this witness."""
-        md = f"# Verification Witness for Claim {self.claim_id}\n\n"
-        md += f"**State**: {self.attestation_state}\n"
+        md = f"# MVPC-X Verification Witness: `{self.witness_id}`\n\n"
+        md += f"**Claim ID**: `{self.claim_id}`\n"
+        md += f"**Attestation State**: `{self.attestation_state}`\n"
         md += f"**Timestamp**: {self.timestamp}\n"
-        md += f"**Artifact**: {self.artifact_path} (Hash: {self.artifact_hash})\n"
-        md += f"\n## Findings\n"
-        for finding in self.findings:
-            md += f"- [{finding.get('severity', 'INFO')}] {finding.get('code')}: {finding.get('message')}\n"
+        md += f"**Artifact**: `{self.artifact_path}`\n"
+        md += f"**Artifact SHA-256**: `{self.artifact_hash}`\n"
+        md += f"**Witness Root Hash**: `{self.witness_hash}`\n\n"
+        
+        md += "## Coverage\n"
+        md += f"- **Checks Performed**: {', '.join(self.checks_performed) if self.checks_performed else 'None'}\n"
+        unavailable = self.coverage.get('checks_unavailable', [])
+        if unavailable:
+            md += f"- **Checks Unavailable**: {', '.join(unavailable)}\n"
+
+        if self.findings:
+            md += f"\n## Findings ({len(self.findings)})\n"
+            for f in self.findings:
+                md += f"- **{f.get('severity', 'INFO')}** (`{f.get('code')}`): {f.get('message')}\n"
+
+        if self.human_attestations:
+            md += f"\n## Human Attestations ({len(self.human_attestations)})\n"
+            for h in self.human_attestations:
+                md += f"- **{h.get('signer')}** @ {h.get('timestamp')} | Accepted: `{'YES' if h.get('accepted') else 'NO'}`\n"
+                if h.get('notes'):
+                    md += f"  - Notes: {h.get('notes')}\n"
+                    
         return md
 
-def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, str]) -> Witness:
+def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, Any]) -> Witness:
     from uuid import uuid4
     
-    # Extract findings and evidence dicts
     findings_dicts = [asdict(f) for f in claim.findings]
     for f in findings_dicts:
         if isinstance(f.get('severity'), Enum):
@@ -72,6 +113,10 @@ def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, str]) 
         'allow_static_only': policy.allow_static_only
     }
     
+    human_attestations = []
+    if claim.human_signoff:
+        human_attestations.append(claim.human_signoff)
+
     w = Witness(
         witness_id=f"W-{uuid4().hex[:8].upper()}",
         claim_id=claim.id,
@@ -85,12 +130,10 @@ def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, str]) 
         coverage=asdict(claim.coverage),
         attestation_state=claim.attestation_state.name if isinstance(claim.attestation_state, Enum) else claim.attestation_state,
         remediation=next((f.remediation for f in claim.findings if f.remediation), None),
-        human_review_obligations=["Review required"] if policy.require_human_signoff else [],
-        timestamp=datetime.utcnow().isoformat()
+        human_review_obligations=["Human review required"] if policy.require_human_signoff and not human_attestations else [],
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        human_attestations=human_attestations
     )
     
-    # Compute witness hash
-    d = w.to_dict()
-    d.pop('witness_hash', None)
-    w.witness_hash = hash_dict(d)
+    w.recompute_hash()
     return w

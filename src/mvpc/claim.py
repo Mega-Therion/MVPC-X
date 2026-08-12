@@ -3,7 +3,7 @@ import json
 from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from mvpc.provenance import Provenance, SourceType
 from mvpc.evidence import Evidence, EvidenceType
@@ -11,7 +11,7 @@ from mvpc.trust import AttestationState, Finding, CoverageReport, Severity
 
 def generate_claim_id() -> str:
     """Generate an auto-generated claim id in format C-YYYY-NNNNNN."""
-    year = datetime.utcnow().year
+    year = datetime.now(timezone.utc).year
     hex_id = uuid.uuid4().hex[:6].upper()
     return f"C-{year}-{hex_id}"
 
@@ -67,7 +67,7 @@ def create_claim(statement: str, origin: SourceType, scope: str, definitions: Di
         provenance=provenance,
         attestation_state=AttestationState.UNVERIFIED,
         coverage=CoverageReport([], [], [], []),
-        created_at=datetime.utcnow().isoformat()
+        created_at=datetime.now(timezone.utc).isoformat()
     )
 
 def load_claim_from_yaml(path: str) -> Claim:

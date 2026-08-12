@@ -1,11 +1,15 @@
 import os
+import re
 import subprocess
+from datetime import datetime, timezone
 from typing import List, Tuple
+from shutil import which
+
 from mvpc.backends.base import VerificationBackend
 from mvpc.trust import Finding, Severity, CoverageReport
 from mvpc.evidence import Evidence, EvidenceType
 from mvpc.hashing import hash_file
-from datetime import datetime
+from mvpc.explanations import get_explanation
 
 class LeanBackend(VerificationBackend):
     def name(self) -> str:
@@ -18,32 +22,67 @@ class LeanBackend(VerificationBackend):
         return any(path.endswith(ext) for ext in self.supported_extensions())
         
     def check_native_available(self) -> bool:
-        from shutil import which
         return which("lean") is not None or which("lake") is not None
 
     def run_static_analysis(self, path: str) -> Tuple[List[Finding], List[Evidence]]:
         findings = []
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8', errors='replace') as f:
                 lines = f.readlines()
                 
-            for i, line in enumerate(lines):
-                if 'sorry' in line:
-                    findings.append(Finding(code="LEAN_SORRY", severity=Severity.VIOLATION, message="Use of 'sorry' detected", system="LeanStatic", line=i+1))
-                if 'admit' in line:
-                    findings.append(Finding(code="LEAN_ADMIT", severity=Severity.VIOLATION, message="Use of 'admit' detected", system="LeanStatic", line=i+1))
-                if 'axiom ' in line:
-                    findings.append(Finding(code="LEAN_AXIOM", severity=Severity.WARNING, message="Axiom usage detected", system="LeanStatic", line=i+1))
+            for i, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if stripped.startswith("--"):
+                    continue
+
+                if re.search(r"\b(sorry|admit)\b", line):
+                    exp = get_explanation("LEAN_SORRY")
+                    findings.append(Finding(
+                        code="LEAN_SORRY",
+                        severity=Severity.VIOLATION,
+                        message="Use of 'sorry' / 'admit' placeholder detected",
+                        system="LeanStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
+                if re.match(r"^\s*axiom\s+\S+", line):
+                    exp = get_explanation("LEAN_AXIOM")
+                    findings.append(Finding(
+                        code="LEAN_AXIOM",
+                        severity=Severity.WARNING,
+                        message=f"Bare axiom declared: {line.strip()}",
+                        system="LeanStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
                 if 'native_decide' in line:
-                    findings.append(Finding(code="LEAN_NATIVE_DECIDE", severity=Severity.WARNING, message="native_decide usage detected", system="LeanStatic", line=i+1))
+                    exp = get_explanation("LEAN_NATIVE_DECIDE")
+                    findings.append(Finding(
+                        code="LEAN_NATIVE_DECIDE",
+                        severity=Severity.WARNING,
+                        message="native_decide usage detected (relies on compiler reduction)",
+                        system="LeanStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
+                if re.search(r"\bunsafe\b", line):
+                    exp = get_explanation("LEAN_UNSAFE")
+                    findings.append(Finding(
+                        code="LEAN_UNSAFE",
+                        severity=Severity.VIOLATION,
+                        message="'unsafe' keyword detected in declaration",
+                        system="LeanStatic",
+                        line=i,
+                        remediation=exp["action"]
+                    ))
 
         except Exception as e:
             findings.append(Finding(code="STATIC_ERROR", severity=Severity.WARNING, message=str(e), system="LeanStatic"))
             
         ev = Evidence(
             evidence_type=EvidenceType.STATIC_ANALYSIS,
-            description="Lean static analysis",
-            timestamp=datetime.utcnow().isoformat(),
+            description="Lean static AST / text analysis",
+            timestamp=datetime.now(timezone.utc).isoformat(),
             artifact_path=path,
             artifact_hash=hash_file(path)
         )
@@ -56,13 +95,20 @@ class LeanBackend(VerificationBackend):
             return findings, evidence
             
         try:
-            res = subprocess.run(["lean", path], capture_output=True, text=True)
+            res = subprocess.run(["lean", path], capture_output=True, text=True, timeout=120)
             if res.returncode != 0:
-                findings.append(Finding(code="LEAN_COMPILE_ERROR", severity=Severity.VIOLATION, message=res.stderr, system="LeanNative"))
+                exp = get_explanation("LEAN_COMPILE_ERROR")
+                findings.append(Finding(
+                    code="LEAN_COMPILE_ERROR",
+                    severity=Severity.VIOLATION,
+                    message=res.stderr or res.stdout,
+                    system="LeanNative",
+                    remediation=exp["action"]
+                ))
             ev = Evidence(
                 evidence_type=EvidenceType.NATIVE_VERIFICATION,
                 description="Lean native compilation",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 artifact_path=path,
                 artifact_hash=hash_file(path)
             )

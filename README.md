@@ -5,9 +5,10 @@
 **Sovereign Claim-Verification Infrastructure & Reproducible Epistemic Engine**
 
 [![CI](https://github.com/Mega-Therion/MVPC-X/actions/workflows/ci.yml/badge.svg)](https://github.com/Mega-Therion/MVPC-X/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Mega-Therion/MVPC-X?color=blue)](https://github.com/Mega-Therion/MVPC-X/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Formal Verification](https://img.shields.io/badge/formal_verification-Lean4%20%7C%20Coq%20%7C%20Python-orange.svg)](#backends)
+[![Formal Verification](https://img.shields.io/badge/formal_verification-Lean4%20%7C%20Coq%20%7C%20Isabelle%20%7C%20SymPy%20%7C%20Z3-orange.svg)](#backends)
 [![Zero Centralized Trust](https://img.shields.io/badge/trust_model-Sovereign%20%26%20Cryptographic-green.svg)](#the-sovereign-covenant)
 
 > *"AI proposes. Machines verify. Humans audit. Evidence persists."*
@@ -26,9 +27,11 @@
 - [Core Primitives](#core-primitives)
 - [Trust & Attestation Model](#trust--attestation-model)
 - [Architecture & Verification Backends](#architecture--verification-backends)
+- [Inline Mathematical Claims Engine](#inline-mathematical-claims-engine)
 - [Quickstart & Installation](#quickstart--installation)
-- [CLI Reference](#cli-reference)
+- [CLI Reference & Human Attestation](#cli-reference--human-attestation)
 - [Witness Hash Chains & Verification](#witness-hash-chains--verification)
+- [Pedagogical Remediation Guidance](#pedagogical-remediation-guidance)
 - [Contributing & Community Roadmap](#contributing--community-roadmap)
 - [License](#license)
 
@@ -62,22 +65,22 @@ Rather than treating source files or AI outputs as monoliths, MVPC-X treats the 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        AI / Human Artifact                             │
-│                  (Lean 4, Coq, Python, Manifest)                       │
+│             (Lean 4, Coq, Isabelle, Python CAS, Manifest)              │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                          MVPC-X Router                                 │
 │        (Provenance Extraction • Static Analysis • AST Audit)           │
-└───────────────────┬────────────────────────────────┬───────────────────┘
-                    │                                │
-                    ▼                                ▼
-       ┌────────────────────────┐      ┌─────────────────────────┐
-       │   Native Verifiers     │      │   Static Policy Engine  │
-       │ (Lean 4, Coqc, etc.)   │      │ (Axiom audit, safety)   │
-       └────────────┬───────────┘      └────────────┬────────────┘
-                    │                               │
-                    └───────────────┬───────────────┘
+└───────┬───────────────────────────┬────────────────────────────┬───────┘
+        │                           │                            │
+        ▼                           ▼                            ▼
+┌──────────────┐            ┌───────────────┐            ┌───────────────┐
+│ Lean 4 / Coq │            │ Isabelle / HOL│            │ SymPy / Z3    │
+│ Proof Kernel │            │ Session Build │            │ SMT Engine    │
+└───────┬──────┘            └───────┬───────┘            └───────┬───────┘
+        │                           │                            │
+        └───────────────────────────┼────────────────────────────┘
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                     Cryptographic Witness Generator                    │
@@ -88,6 +91,11 @@ Rather than treating source files or AI outputs as monoliths, MVPC-X treats the 
 │                           Audited Claim                                │
 │       [VERIFIED | CONDITIONAL | REJECTED | UNVERIFIED]                 │
 │         (Proportional to what was actually checked by machine)         │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                      Human Attestation Gate                            │
+│           (Human review signoff attached via `mvpc attest`)            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -96,7 +104,7 @@ Rather than treating source files or AI outputs as monoliths, MVPC-X treats the 
 ## Why It Matters
 
 1. **Never Manufacture Certainty:** If a theorem has not been compiled with a native proof assistant, MVPC-X refuses to declare it `VERIFIED`. It yields `CONDITIONAL` with explicit coverage limits.
-2. **Deterministic Adversarial Audits:** Smuggled axioms (e.g., `axiom shortcut : False`), `sorry` escape hatches, `admit` stubs, unsafe system calls, and undeclared axioms are trapped and flagged immediately.
+2. **Deterministic Adversarial Audits:** Smuggled axioms (e.g., `axiom shortcut : False`), `sorry` / `oops` / `admit` escape hatches, unsafe system calls, and undeclared axioms are trapped and flagged immediately.
 3. **Decoupled Verification:** You do not trust the entity asserting a claim. You trust the cryptographic witness stating *what environment, what toolchain, what hashes, and what axioms* were executed.
 4. **Machine-Checked Epistemic Hygiene:** From AI research to aerospace codebases, every pipeline can enforce strict mathematical boundaries before deployment.
 
@@ -138,7 +146,7 @@ MVPC-X organizes knowledge into five fundamental primitives:
 |:---|:---|:---|
 | **Claim** | The fundamental object under evaluation. | Has an ID (`C-YYYY-XXXXXX`), formal statement, scope, assumptions, and attestation state. |
 | **Evidence** | Deterministic artifacts generated during verification. | Type (`FORMAL_PROOF`, `COMPUTATION`, `STATIC_ANALYSIS`), SHA-256 hash, and timestamps. |
-| **Verification** | The independent mechanism that evaluated the claim. | Native Lean compiler, Coq typechecker, Python AST auditor, or sandbox runner. |
+| **Verification** | The independent mechanism that evaluated the claim. | Native Lean compiler, Coq typechecker, Isabelle build, Python AST auditor, or sandbox runner. |
 | **Provenance** | The lineage and origin of the artifact. | Source type (`HUMAN`, `AI`, `MACHINE`, `LITERATURE`), AI model details, and prompt hashes. |
 | **Witness** | The self-verifying cryptographic record of an audit. | Contains environment info, checks performed, checks unavailable, findings, and a root SHA-256 signature. |
 
@@ -175,13 +183,33 @@ MVPC-X includes a modular backend registry:
   - *Static:* Traps `sorry`, `admit`, `native_decide`, and unapproved `axiom` declarations.
   - *Native:* Invokes `lean` / `lake` compiler to guarantee proof closure.
 - **Coq Backend (`mvpc.backends.coq`)**:
-  - *Static:* Detects `Admitted`, unproven goals, and raw axioms.
+  - *Static:* Detects `Admitted`, unproven goals, and raw `Axiom` declarations.
   - *Native:* Executes `coqc` proof verification.
-- **Python Backend (`mvpc.backends.python`)**:
+- **Isabelle/HOL Backend (`mvpc.backends.isabelle`)**:
+  - *Static:* Detects `sorry`, `oops`, and `axiomatization` declarations in `.thy` files.
+  - *Native:* Automatically locates parent session context and runs `isabelle build -D <root_dir>`.
+- **Python & Mathematical CAS Backend (`mvpc.backends.python`)**:
   - *Static AST:* Traps unsafe execution vectors (`exec`, `eval`, `os.system`, shell injection).
-  - *Native:* Executes sandboxed assertions and unit suites.
+  - *Symbolic & SMT Claims:* Evaluates embedded algebraic identities, Z3 constraint bundles, and numeric sample points.
 - **Generic Backend (`mvpc.backends.generic`)**:
   - Cryptographically hashes any arbitrary artifact, producing immutable evidence without pretending to understand its internal semantics.
+
+---
+
+## Inline Mathematical Claims Engine
+
+Embed machine-checkable mathematical claims directly inside your `.py` or `.biomech` files:
+
+```python
+# MVPC-CLAIM identity: sin(x)**2 + cos(x)**2 == 1
+# MVPC-CLAIM identity: (x + y)**2 == x**2 + 2*x*y + y**2
+# MVPC-CLAIM numeric: (x + 1)**2 == x**2 + 2*x + 1 samples=x:-2,-1,0,1,2,5
+```
+
+When audited:
+1. **SymPy CAS** simplifies `LHS - RHS == 0` to verify symbolic equivalence.
+2. **Z3 SMT Solver** checks declared constraint sets for contradiction/unsatisfiability.
+3. **NumPy Point Sampler** stress-tests relationships across specified numerical evaluation points.
 
 ---
 
@@ -189,12 +217,12 @@ MVPC-X includes a modular backend registry:
 
 ### Requirements
 - Python 3.10+
-- Optional: `lean` (Lean 4) or `coqc` (Coq) for native theorem proving.
+- Optional: `lean` (Lean 4), `coqc` (Coq), `isabelle` (Isabelle/HOL).
 
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/Mega-Therion/MVPC-X.git
 cd MVPC-X
 
@@ -202,82 +230,82 @@ cd MVPC-X
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install in editable mode with development/test tooling
-pip install -e ".[test]"
+# Install in editable mode (with math & test tools)
+pip install -e ".[all]"
 ```
 
 ### Run Test Suite
 ```bash
 pytest
 ```
-*All 34 native & static tests execute in milliseconds using zero external dependencies.*
+*All 42 native, static, and symbolic tests execute in seconds.*
 
 ---
 
-## CLI Reference
+## CLI Reference & Human Attestation
 
-### 1. Audit a Single File
+### 1. Audit a File
 ```bash
 mvpc audit path/to/theorem.lean
 ```
 
+### 2. Audit with Strict Policy and AI Provenance Tracking
+```bash
+mvpc audit theorem.lean --policy strict --ai-touched --ai-model "gemini-3.1-pro" --ai-prompt-file prompt.txt
+```
+
+### 3. Human Attestation Workflow
+After reviewing an audit receipt (`witness.json`), seal human attestation into the cryptographic chain:
+```bash
+mvpc attest witness.json --signer "Dr. Jane Doe" --notes "Formal theorem reviewed and confirmed"
+```
+
 Output:
 ```text
-Claim ID: C-2026-B39580
-Statement: Artifact clean.lean satisfies policy level DEFAULT
-State: VERIFIED
-
-Coverage:
-  Checks Performed: Static Analysis, Native Verification
-
-Note: This specific set of checks passed. The artifact is proportional to the verification actually performed.
+======================================================================
+ HUMAN ATTESTATION SEALED — W-04E9BF20
+======================================================================
+ Claim ID       : C-2026-62435F
+ Signer         : Dr. Jane Doe
+ Accepted       : YES
+ Timestamp      : 2026-08-12T12:42:00Z
+ Notes          : Formal theorem reviewed and confirmed
+ Root SHA-256   : 49e8a93...
+ Saved to       : witness.json
+======================================================================
 ```
 
-### 2. Audit with Strict Policy
-Enforce that native verification MUST succeed and no axioms are permitted:
-```bash
-mvpc audit path/to/theorem.lean --policy strict
-```
-
-### 3. Generate Machine-Readable JSON Witness
-```bash
-mvpc audit tests/fixtures/sorry.lean --json
-```
-
-### 4. Verify a Witness Hash Integrity
+### 4. Verify Cryptographic Witness Integrity
 ```bash
 mvpc witness verify witness.json
 ```
 
 ---
 
-## Witness Hash Chains & Verification
+## Pedagogical Remediation Guidance
 
-Every audit produces a deterministic SHA-256 hash calculated across all constituent fields:
-- Artifact SHA-256 hash
-- Environment metadata (OS, Python version, architecture)
-- Policy configuration applied
-- Checks performed vs. checks unavailable
-- Findings & evidence items
+Every finding in MVPC-X includes plain-English pedagogical explanations and actionable remediation steps:
 
-If even a single byte of an audited proof, finding, or environment flag is altered, `verify_witness_hash()` detects the tampering immediately.
+```text
+======================================================================
+ MVPC-X CLAIM ATTESTATION — C-2026-C24330
+======================================================================
+ Statement : Artifact sorry.lean satisfies policy level DEFAULT
+ State     : REJECTED
+
+ Findings & Guidance:
+  [1] VIOLATION | Incomplete Proof (Sorry Bypass) (LEAN_SORRY) (line 3)
+      Message : Use of 'sorry' / 'admit' placeholder detected
+      Why     : Proof contains 'sorry' — a placeholder, not a closed proof.
+      Fix     : Replace 'sorry' with real proof tactics or lemmas.
+======================================================================
+```
 
 ---
 
 ## Contributing & Community Roadmap
 
 We warmly welcome contributions from mathematicians, software engineers, security researchers, and formal methods practitioners.
-
-### Immediate Community Goals (v7.1 - v8.0)
-- [ ] **New Backends:**
-  - Isabelle/HOL (`.thy`)
-  - Agda (`.agda`)
-  - Z3 / SMT-LIB2 (`.smt2`)
-  - Rust Formal Verification (Creusot / Kani / Miri)
-  - TLA+ Specification Checker
-- [ ] **Distributed Witness Registry:** Decentralized, content-addressable storage (IPFS/Git-notes) for published witnesses.
-- [ ] **AI Model Guardrails:** Direct plug-in middleware for LLM inference engines (automatically piping LLM code/proof outputs through MVPC-X before returning responses).
-- [ ] **GitHub Action:** Ready-to-use PR audit bot for open-source repositories.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mvpc"
-version = "7.0.0"
+version = "7.1.0"
 authors = [
   { name = "Sovereign Physics Lab", email = "viewsbyryan@gmail.com" },
 ]
@@ -38,3 +38,14 @@ where = ["src"]
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
+math = [
+    "sympy>=1.12",
+    "z3-solver>=4.12",
+    "numpy>=1.24"
+]
+all = [
+    "pytest>=7.0",
+    "sympy>=1.12",
+    "z3-solver>=4.12",
+    "numpy>=1.24"
+]
