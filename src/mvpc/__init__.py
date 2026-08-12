@@ -1,5 +1,5 @@
 """MVPC-X — Sovereign Claim-Verification Infrastructure & Reproducible Epistemic Engine."""
-__version__ = "7.2.0"
+__version__ = "7.3.0"
 
 from mvpc.claim import Claim, create_claim
 from mvpc.evidence import Evidence, EvidenceType
@@ -8,6 +8,8 @@ from mvpc.provenance import Provenance, SourceType, AIProvenance
 from mvpc.policy import PolicyLevel, Policy, get_policy, evaluate_attestation
 from mvpc.witness import Witness, generate_witness
 from mvpc.explanations import get_explanation
+from mvpc.security import compute_system_fingerprint, IntegritySession
+from mvpc.preflight import run_preflight
 
 __all__ = [
     "__version__",
@@ -29,4 +31,7 @@ __all__ = [
     "Witness",
     "generate_witness",
     "get_explanation",
+    "compute_system_fingerprint",
+    "IntegritySession",
+    "run_preflight",
 ]

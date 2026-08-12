@@ -7,44 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [7.2.0] - 2026-08-12
+## [7.3.0] - 2026-08-12
 
-### Full works: Lean gold standard, covenant constitution, real tests, golden demo
+### Preflight, scaffold, and system self-integrity
 
-#### Features
-- **Lean backend gold standard:** Comment stripping; depth-aware theorem binder/statement scan; bare `axiom` / `unsafe` / tautology traps; env probe (lake/mathlib/version); native `lake env lean` / `lean` with `#print axioms`; kernel allowlist + `sorryAx` / `Lean.ofReduceBool`; optional Z3 vacuous-hypothesis and SymPy identity layers.
-- **Covenant constitution:** `COVENANT.md` expanded into the full biomechanical human-AI standard (roles, attestation law, witness law, prohibited behaviors).
-- **Golden witness demo:** `examples/golden/` with README + `extract_and_attest.py` end-to-end path.
-- **Explanations:** New Lean codes (`LEAN_KERNEL_SORRY_AX`, `LEAN_AXIOM_SMUGGLE`, `LEAN_TAUTOLOGY`, `LEAN_Z3_VACUOUS`, `LEAN_SYMPY_MISMATCH`, `LEAN_KERNEL_NEVER_RAN`, `LEAN_NO_LAKE_PROJECT`, and related).
+#### Security
+- **System self-fingerprint:** SHA-256 over installed `mvpc/**/*.py` captured **before** artifact ingest, checked **mid-run**, verified **after** processing. Mutation → `SYSTEM_INTEGRITY_FAILURE`.
+- **Artifact pre/post hash** secondary tamper signal → `ARTIFACT_MUTATION`.
+- **Intake guards:** max size, symlink policy, blocked executable extensions.
+- CLI: `mvpc integrity`, `mvpc integrity --verify-twice`.
+
+#### UX
+- **`mvpc preflight`** — classify backend, probe tools, structure score, readiness enum.
+- **`mvpc scaffold`** — lean / coq / isabelle / python-math / claim templates.
+- **`docs/INPUT_CONTRACT.md`** — open ingest + structured upgrade path.
+- SECURITY.md documents the self-seal threat model.
 
 #### Tests
-- Replaced stub tests in `test_claim`, `test_evidence`, `test_hashing`, `test_trust`, `test_witness` with real assertions (serialization, hash tamper detection, witness reseal on human attestation).
-- Added fixtures `tautology.lean`, `vacuous.lean`.
+- `tests/test_security.py`, `tests/test_preflight.py`.
+
+---
+
+## [7.2.0] - 2026-08-12
+
+### Lean gold standard, covenant constitution, real tests, golden demo
+
+- Full Lean multi-engine backend; expanded COVENANT.md; golden demo; real primitive tests.
 
 ---
 
 ## [7.1.0] - 2026-08-12
 
-### Biomechanical and Multi-Prover Integration
-
-#### Features
-- **Isabelle/HOL Backend (`mvpc.backends.isabelle`)**
-- **Inline Symbolic, SMT and Numeric Math Claim Engine** (`# MVPC-CLAIM` / `# BIOMECH-CLAIM`)
-- **Human Attestation CLI Workflow (`mvpc attest`)**
-- **Pedagogical Remediation Dictionary (`mvpc.explanations`)**
-- **Enhanced Governance CLI Flags**
-- **Timezone-aware UTC datetimes**
+### Isabelle, math claims, human attestation, explanations
 
 ---
 
 ## [7.0.0] - 2026-08-12
 
-### Initial Sovereign Release of MVPC-X
-
-#### Features
-- **Core Primitives:** Claim, Evidence, Verification, Provenance, and Witness
-- **Trust and Attestation Model:** VERIFIED, CONDITIONAL, REJECTED, UNVERIFIED
-- **Policy Engine:** PERMISSIVE, DEFAULT, STRICT
-- **Multi-Backend Engine:** Lean 4, Coq, Python, Generic hasher
-- **Cryptographic Witness Chains**
-- **CLI:** `mvpc audit`, `mvpc witness verify`, directory scanning, JSON export
+### Initial sovereign release
