@@ -13,12 +13,11 @@ def test_ledger_chain():
 
 def test_fork_rejected():
     led = EvidenceLedger()
-    led.append_witness({"h": 1})
-    tip = led.tip_hash()
+    e1 = led.append_witness({"h": 1})
+    tip = e1.entry_hash
     led.append("witness", {"h": 2})
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="fork detected"):
         led2 = EvidenceLedger()
         led2.entries = list(led.entries[:1])
-        led2._by_prev = {None: [tip] if tip else []}
+        led2._by_prev = {tip: ["existing_child"]}
         led2.append("witness", {"h": 3})
-        led2.append("witness", {"h": 4})
