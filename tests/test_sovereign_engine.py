@@ -38,6 +38,7 @@ def test_clean_heuristic_is_not_formally_checked():
     assert r["trust_verdict"] != TrustVerdict.FORMALLY_CHECKED.value
     assert r["driver_mode"] == "heuristic"
     assert "FORMALLY_CHECKED" in r["note"] or "kernel" in r["note"].lower()
+    assert r["newton_architect"]["authority"] == "NEWTON ARCHITECT Protocol"
 
 
 def test_cps_velocity_violation():
@@ -58,3 +59,14 @@ def test_ledger_chain_grows():
     eng.process_and_verify(_base_claim("theorem b : True := by trivial", "b"))
     assert len(eng.ledger.chain) == 2
     assert eng.ledger.chain[0].evidence_chain_hash != eng.ledger.chain[1].evidence_chain_hash
+
+
+def test_newton_vacuous_proof_fails_sovereign():
+    eng = SovereignNexusEngine()
+    r = eng.process_and_verify(
+        _base_claim("theorem sovereign_convergence : True := trivial", "newton-vacuous")
+    )
+    assert r["overall_status"] == "FAILED"
+    assert r["newton_architect"]["passed"] is False
+    assert any(f["code"] == "NEWTON_VACUOUS_PROOF" for f in r["newton_architect"]["findings"])
+    assert r["trust_verdict"] == TrustVerdict.REJECTED.value

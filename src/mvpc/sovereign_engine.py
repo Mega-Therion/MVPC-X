@@ -23,6 +23,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from mvpc.core.safe_verify import safe_verify_source
+from mvpc.newton_architect import AUTHORITY, scan_artifact_text, system_directive
+from mvpc.trust import Severity
 from mvpc.trust_verdicts import TrustVerdict
 
 try:
@@ -162,6 +164,7 @@ class VerificationResult:
     error_message: Optional[str] = None
     proof_tree_digest: Optional[str] = None
     driver_mode: str = "heuristic"
+    newton_findings: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def verified(self) -> bool:
@@ -232,8 +235,22 @@ def _scan_result(
     if not sv.clean:
         axioms = list({*axioms, *[f.rule for f in sv.findings]})
 
+    newton_findings = scan_artifact_text(code)
+    newton_payload = [
+        {
+            "code": f.code,
+            "severity": f.severity.name if hasattr(f.severity, "name") else str(f.severity),
+            "message": f.message,
+            "line": f.line,
+        }
+        for f in newton_findings
+    ]
+    newton_codes = [f.code for f in newton_findings if f.severity == Severity.VIOLATION]
+    if newton_codes:
+        axioms = list({*axioms, *newton_codes})
+
     syntax_ok = any(tok in code for tok in required_any) if required_any else bool(code.strip())
-    has_bad = bool(axioms) or not sv.clean
+    has_bad = bool(axioms) or not sv.clean or bool(newton_codes)
 
     if has_bad:
         verdict = TrustVerdict.EVIDENCE_SUPPORTED.value
@@ -241,8 +258,10 @@ def _scan_result(
             verdict = TrustVerdict.EVIDENCE_SUPPORTED.value
         else:
             verdict = TrustVerdict.INCONCLUSIVE.value
+        if newton_codes:
+            verdict = TrustVerdict.REJECTED.value
         heuristic_pass = False
-        err = f"unsound markers or weak syntax: {axioms or 'scan findings'}"
+        err = f"unsound markers, Newton Architect, or weak syntax: {axioms or 'scan findings'}"
     elif syntax_ok:
         verdict = TrustVerdict.EVIDENCE_SUPPORTED.value
         heuristic_pass = True
@@ -265,6 +284,7 @@ def _scan_result(
         error_message=err,
         proof_tree_digest=hashlib.sha256(code.encode()).hexdigest()[:16],
         driver_mode="heuristic",
+        newton_findings=newton_payload,
     )
 
 
@@ -273,7 +293,7 @@ class Lean4BackendDriver(AbstractBackendDriver):
         return _scan_result(
             claim,
             backend=TargetBackend.LEAN4,
-            forbidden=["sorry", "sorryAx"],
+            forbidden=["sorry", "sorryAx", ": True := trivial"],
             required_any=["theorem", "lemma", "def", "example"],
             t0=time.perf_counter(),
         )
@@ -482,6 +502,7 @@ class SystemFingerprinter:
             "claim_id": claim.claim_id,
             "python_version": sys.version.split()[0],
             "code_hash": hashlib.sha256(claim.formal_code.encode()).hexdigest(),
+            "newton_authority": AUTHORITY,
         }
         return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
@@ -529,6 +550,7 @@ class EvidenceManifest:
     safe_verify_passed: bool
     evidence_chain_hash: str
     driver_mode: str = "heuristic"
+    newton_authority: str = AUTHORITY
 
 
 class ImmutableEvidenceLedger:
@@ -551,7 +573,7 @@ class ImmutableEvidenceLedger:
         ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         payload = (
             f"{prev}|{claim.claim_id}|{verification_result.trust_verdict}|"
-            f"{groebner_ok}|{si_ok}|{cps_ok}|{leakage_ok}|{safe_verify_ok}|{post_fp}"
+            f"{groebner_ok}|{si_ok}|{cps_ok}|{leakage_ok}|{safe_verify_ok}|{post_fp}|{AUTHORITY}"
         )
         chain_hash = hashlib.sha256(payload.encode()).hexdigest()
         manifest = EvidenceManifest(
@@ -572,6 +594,7 @@ class ImmutableEvidenceLedger:
             safe_verify_passed=safe_verify_ok,
             evidence_chain_hash=chain_hash,
             driver_mode=verification_result.driver_mode,
+            newton_authority=AUTHORITY,
         )
         self.chain.append(manifest)
         return manifest
@@ -587,6 +610,7 @@ class SovereignNexusEngine:
         self.cps_auditor = CPSSafetyAuditor()
         self.leakage_certifier = ZeroLeakageCertifier()
         self.ledger = ImmutableEvidenceLedger()
+        self.newton_authority = AUTHORITY
 
         self.si_checker.register_variable("F", SI_DIMENSIONS["force"])
         self.si_checker.register_variable("m", SI_DIMENSIONS["mass"])
@@ -636,6 +660,9 @@ class SovereignNexusEngine:
             safe_verify_ok=safe_ok,
         )
 
+        newton_ok = not any(
+            item.get("severity") == "VIOLATION" for item in v_result.newton_findings
+        )
         overall = (
             v_result.heuristic_pass
             and not v_result.has_unverified_axioms
@@ -643,6 +670,7 @@ class SovereignNexusEngine:
             and si_ok
             and cps_ok
             and safe_ok
+            and newton_ok
         )
 
         return {
@@ -654,13 +682,20 @@ class SovereignNexusEngine:
             "driver_mode": v_result.driver_mode,
             "note": (
                 "Heuristic/backend scan path. FORMALLY_CHECKED requires a real "
-                "kernel checker acceptance, not string heuristics."
+                "kernel checker acceptance, not string heuristics. "
+                f"Newton Architect authority: {AUTHORITY}."
             ),
             "verification_result": asdict(v_result),
             "groebner_cas_certification": {"certified": groebner_ok, "details": groebner_msg},
             "si_dimension_certification": {"certified": si_ok, "details": si_msg},
             "cps_safety_certification": {"certified": cps_ok, "violations": cps_violations},
             "safe_verify_audit": {"passed": safe_ok, "details": safe_msg},
+            "newton_architect": {
+                "authority": AUTHORITY,
+                "passed": newton_ok,
+                "findings": v_result.newton_findings,
+                "directive": system_directive(),
+            },
             "immutable_evidence_manifest": asdict(manifest),
         }
 
