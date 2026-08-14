@@ -18,6 +18,11 @@ from mvpc.security import (
     DEFAULT_MAX_ARTIFACT_BYTES,
 )
 from mvpc.explanations import get_explanation
+from mvpc.newton_architect import (
+    AUTHORITY,
+    merge_newton_findings,
+    system_directive,
+)
 
 
 class VerificationEngine:
@@ -43,6 +48,7 @@ class VerificationEngine:
             "os": os.name,
             "platform": platform.platform(),
             "python_version": platform.python_version(),
+            "newton_authority": AUTHORITY,
         }
 
     def verify_artifact(
@@ -53,7 +59,6 @@ class VerificationEngine:
     ) -> Claim:
         path = os.path.abspath(path)
 
-        # --- Intake guards (before reading as a backend target) ---
         intake = validate_intake(
             path,
             max_bytes=self.max_artifact_bytes,
@@ -94,11 +99,24 @@ class VerificationEngine:
             )
             return claim
 
-        # --- SYSTEM SEAL BEFORE any backend touches the artifact ---
         session = IntegritySession.begin(path if os.path.isfile(path) else None)
 
         backend = self.registry.get_backend(path)
         findings, evidence, coverage = backend.audit(path)
+
+        artifact_text = ""
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                    artifact_text = fh.read()
+            except OSError:
+                artifact_text = ""
+        findings = merge_newton_findings(findings, artifact_text)
+        if statement:
+            findings = merge_newton_findings(findings, statement)
+        coverage.checks_performed = list(coverage.checks_performed) + [
+            "Newton Architect Protocol"
+        ]
 
         if self.mid_run_integrity_check:
             if not session.check_mid():
@@ -120,7 +138,6 @@ class VerificationEngine:
                     )
                 )
 
-        # --- SYSTEM SEAL AFTER processing ---
         session.finalize()
         if self.enforce_system_integrity and not session.system_intact:
             exp = get_explanation("SYSTEM_INTEGRITY_FAILURE")
@@ -157,7 +174,6 @@ class VerificationEngine:
                 )
             )
 
-        # Soft intake warnings
         for reason in intake.reasons:
             if reason not in ("Intake OK", "Directory intake OK"):
                 findings.append(
@@ -175,7 +191,13 @@ class VerificationEngine:
             "Intake Security Guard",
         ]
 
-        attestation_state = evaluate_attestation(findings, coverage, self.policy)
+        attestation_state = evaluate_attestation(
+            findings,
+            coverage,
+            self.policy,
+            artifact_text=artifact_text,
+            statement=statement,
+        )
 
         stmt = statement or (
             f"Artifact {os.path.basename(path)} satisfies policy level {self.policy.level.name}"
@@ -188,6 +210,8 @@ class VerificationEngine:
             metadata={
                 "integrity": session.to_dict(),
                 "intake": intake.to_dict(),
+                "newton_authority": AUTHORITY,
+                "newton_directive": system_directive(),
             },
         )
 
@@ -203,8 +227,6 @@ class VerificationEngine:
         claim.coverage = coverage
         claim.attestation_state = attestation_state
 
-        witness = generate_witness(claim, self.policy, self._get_environment())
-        # Embed integrity into witness environment snapshot
         env = self._get_environment()
         env["system_integrity"] = session.to_dict()
         witness = generate_witness(claim, self.policy, env)
