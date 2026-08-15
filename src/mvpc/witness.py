@@ -10,6 +10,7 @@ from mvpc.trust import AttestationState, Finding, CoverageReport
 from mvpc.evidence import Evidence
 from mvpc.hashing import hash_dict
 
+
 @dataclass
 class Witness:
     witness_id: str
@@ -38,18 +39,20 @@ class Witness:
     def recompute_hash(self) -> str:
         """Recompute and set the self-verifying SHA-256 root hash."""
         d = self.to_dict()
-        d.pop('witness_hash', None)
+        d.pop("witness_hash", None)
         self.witness_hash = hash_dict(d)
         return self.witness_hash
 
     def verify_integrity(self) -> bool:
         """Verify the self-hash of this witness."""
         d = self.to_dict()
-        provided_hash = d.pop('witness_hash', '')
+        provided_hash = d.pop("witness_hash", "")
         computed_hash = hash_dict(d)
         return provided_hash == computed_hash
 
-    def add_human_attestation(self, signer: str, notes: str = "", accepted: bool = True) -> None:
+    def add_human_attestation(
+        self, signer: str, notes: str = "", accepted: bool = True
+    ) -> None:
         """Attach a human signature / review notes and seal the witness."""
         attestation = {
             "signer": signer,
@@ -60,7 +63,9 @@ class Witness:
         self.human_attestations.append(attestation)
         # Clear missing human attestation findings if accepted
         if accepted:
-            self.findings = [f for f in self.findings if f.get('code') != 'HUMAN_ATTESTATION_MISSING']
+            self.findings = [
+                f for f in self.findings if f.get("code") != "HUMAN_ATTESTATION_MISSING"
+            ]
             self.human_review_obligations = []
         self.recompute_hash()
 
@@ -73,10 +78,10 @@ class Witness:
         md += f"**Artifact**: `{self.artifact_path}`\n"
         md += f"**Artifact SHA-256**: `{self.artifact_hash}`\n"
         md += f"**Witness Root Hash**: `{self.witness_hash}`\n\n"
-        
+
         md += "## Coverage\n"
         md += f"- **Checks Performed**: {', '.join(self.checks_performed) if self.checks_performed else 'None'}\n"
-        unavailable = self.coverage.get('checks_unavailable', [])
+        unavailable = self.coverage.get("checks_unavailable", [])
         if unavailable:
             md += f"- **Checks Unavailable**: {', '.join(unavailable)}\n"
 
@@ -89,30 +94,39 @@ class Witness:
             md += f"\n## Human Attestations ({len(self.human_attestations)})\n"
             for h in self.human_attestations:
                 md += f"- **{h.get('signer')}** @ {h.get('timestamp')} | Accepted: `{'YES' if h.get('accepted') else 'NO'}`\n"
-                if h.get('notes'):
+                if h.get("notes"):
                     md += f"  - Notes: {h.get('notes')}\n"
-                    
+
         return md
 
-def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, Any]) -> Witness:
+
+def generate_witness(
+    claim: Claim, policy: Policy, environment: Dict[str, Any]
+) -> Witness:
     from uuid import uuid4
-    
+
     findings_dicts = [asdict(f) for f in claim.findings]
     for f in findings_dicts:
-        if isinstance(f.get('severity'), Enum):
-            f['severity'] = f['severity'].name
-            
+        if isinstance(f.get("severity"), Enum):
+            f["severity"] = f["severity"].name
+
     evidence_dicts = [asdict(e) for e in claim.evidence]
     for e in evidence_dicts:
-        if isinstance(e.get('evidence_type'), Enum):
-            e['evidence_type'] = e['evidence_type'].name
+        if isinstance(e.get("evidence_type"), Enum):
+            e["evidence_type"] = e["evidence_type"].name
 
     policy_dict = {
-        'level': policy.level.name,
-        'require_native_verification': policy.require_native_verification,
-        'allow_static_only': policy.allow_static_only
+        "level": policy.level.name,
+        "require_native_verification": policy.require_native_verification,
+        "allow_static_only": policy.allow_static_only,
+        # witness_hash is computed over this dict. Omitting newton_enforced
+        # meant a run with Newton enforced and a run with it disabled produced
+        # byte-identical witness hashes — the self-verifying record could not
+        # distinguish them. getattr keeps older Policy objects loadable, the
+        # same defensive pattern policy.evaluate_attestation uses.
+        "newton_enforced": getattr(policy, "newton_enforced", True),
     }
-    
+
     human_attestations = []
     if claim.human_signoff:
         human_attestations.append(claim.human_signoff)
@@ -128,12 +142,22 @@ def generate_witness(claim: Claim, policy: Policy, environment: Dict[str, Any]) 
         findings=findings_dicts,
         evidence=evidence_dicts,
         coverage=asdict(claim.coverage),
-        attestation_state=claim.attestation_state.name if isinstance(claim.attestation_state, Enum) else claim.attestation_state,
-        remediation=next((f.remediation for f in claim.findings if f.remediation), None),
-        human_review_obligations=["Human review required"] if policy.require_human_signoff and not human_attestations else [],
+        attestation_state=(
+            claim.attestation_state.name
+            if isinstance(claim.attestation_state, Enum)
+            else claim.attestation_state
+        ),
+        remediation=next(
+            (f.remediation for f in claim.findings if f.remediation), None
+        ),
+        human_review_obligations=(
+            ["Human review required"]
+            if policy.require_human_signoff and not human_attestations
+            else []
+        ),
         timestamp=datetime.now(timezone.utc).isoformat(),
-        human_attestations=human_attestations
+        human_attestations=human_attestations,
     )
-    
+
     w.recompute_hash()
     return w

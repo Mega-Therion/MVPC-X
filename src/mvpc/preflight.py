@@ -1,4 +1,5 @@
 """Preflight readiness checks — classify input, probe tools, never crash."""
+
 from __future__ import annotations
 
 import json
@@ -11,6 +12,7 @@ from shutil import which
 from typing import Any, Dict, List, Optional
 
 from mvpc.backends.registry import get_default_registry
+from mvpc.newton_architect import scan_artifact_text
 from mvpc.security import (
     DEFAULT_MAX_ARTIFACT_BYTES,
     compute_system_fingerprint,
@@ -88,7 +90,9 @@ def _score_lean(path: Path, text: str) -> tuple[int, List[str], List[str]]:
         score -= 20
         notes.append("Bare axiom present")
     parent = path.parent
-    has_lake = (parent / "lakefile.lean").exists() or (parent / "lakefile.toml").exists()
+    has_lake = (parent / "lakefile.lean").exists() or (
+        parent / "lakefile.toml"
+    ).exists()
     if not has_lake:
         # search one up
         has_lake = (parent.parent / "lakefile.lean").exists() or (
@@ -104,9 +108,33 @@ def _score_lean(path: Path, text: str) -> tuple[int, List[str], List[str]]:
         notes.append("Has imports (may need lake env)")
         if not has_lake:
             score -= 10
+
+    # Newton Architect gates readiness too. Without this, a file of
+    # `theorem X : True := trivial` scored 40 + 20 (has theorem) + 25 (lake)
+    # = 85 -> READY_DEEP, because nothing here looked for vacuous proofs.
+    # That is the exact pattern the Res-Nova vacuity audit found in the wild.
+    #
+    # A vacuous placeholder is worse than `sorry` (-25): `sorry` is honest
+    # about being a hole, `: True := trivial` masquerades as a finished proof.
+    # Delegate the detection to scan_artifact_text so the rules live in one
+    # place, and clamp hard so no such file can reach READY_DEEP (>= 60).
+    newton_findings = scan_artifact_text(text)
+    if newton_findings:
+        score -= 40 * len(newton_findings)
+        score = min(score, 35)
+        for f in newton_findings:
+            notes.append(f"Newton Architect violation: {f.code} — {f.message}")
+            if f.remediation:
+                recs.append(f.remediation)
+
     return max(0, min(100, score)), notes, recs
 
 
+# No Newton scan below: the protocol's syntactic rules are Lean-flavoured
+# (`: True := trivial`, `#print axioms`). The semantic rules it also carries —
+# the a0 and Omega_Lambda epoch checks — are prose-level and already enforced
+# at verification time by nexus_pipeline and mvpc.policy, which see every
+# backend. This asymmetry is deliberate, not an oversight.
 def _score_coq(path: Path, text: str) -> tuple[int, List[str], List[str]]:
     notes, recs = [], []
     score = 45
@@ -260,7 +288,9 @@ def run_preflight(
             recs.append("pip install z3-solver  # for constraint claims")
     else:
         notes.append("No specialized backend — generic hash path only")
-        recs.append("Use `mvpc scaffold claim` or a supported extension (.lean/.v/.thy/.py)")
+        recs.append(
+            "Use `mvpc scaffold claim` or a supported extension (.lean/.v/.thy/.py)"
+        )
         readiness = Readiness.GENERIC_ONLY
         structure_score = 15
 
