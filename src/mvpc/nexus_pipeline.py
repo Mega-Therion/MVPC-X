@@ -15,6 +15,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from mvpc.core.safe_verify import safe_verify_source
+from mvpc.newton_architect import AUTHORITY, scan_artifact_text
 from mvpc.cps_realization import CPSRealizationBridge
 from mvpc.trust_verdicts import TrustVerdict
 
@@ -89,15 +90,21 @@ class NeutralIngestionEngine:
     @staticmethod
     def process_raw_claim(raw_data: Dict[str, Any]) -> NeutralClaim:
         try:
-            proposer = ProposerType(str(raw_data.get("proposer_type", "synthetic")).lower())
+            proposer = ProposerType(
+                str(raw_data.get("proposer_type", "synthetic")).lower()
+            )
         except ValueError:
             proposer = ProposerType.SYNTHETIC
         try:
-            backend = TargetBackend(str(raw_data.get("target_backend", "lean4")).lower())
+            backend = TargetBackend(
+                str(raw_data.get("target_backend", "lean4")).lower()
+            )
         except ValueError:
             backend = TargetBackend.LEAN4
 
-        formal_code = str(raw_data.get("formal_code", "") or raw_data.get("header_code", ""))
+        formal_code = str(
+            raw_data.get("formal_code", "") or raw_data.get("header_code", "")
+        )
         content_hash = hashlib.sha256(
             f"{proposer.value}:{backend.value}:{formal_code}".encode()
         ).hexdigest()
@@ -107,7 +114,9 @@ class NeutralIngestionEngine:
         physical_profile = PhysicalProfile(
             requires_si_checking=bool(phys.get("requires_si_checking", True)),
             requires_cps_bounds=bool(phys.get("requires_cps_bounds", True)),
-            max_allowable_temperature=float(phys.get("max_allowable_temperature", 350.0)),
+            max_allowable_temperature=float(
+                phys.get("max_allowable_temperature", 350.0)
+            ),
             max_allowable_velocity=float(phys.get("max_allowable_velocity", 100.0)),
             physical_variables=dict(phys.get("physical_variables") or {}),
         )
@@ -139,8 +148,21 @@ def _heuristic_verify(
     sv = safe_verify_source(code, backend=backend.value)
     if not sv.clean:
         axioms = list({*axioms, *[f.rule for f in sv.findings]})
-    syntax_ok = any(tok in code for tok in required_any) if required_any else bool(code.strip())
-    has_bad = bool(axioms) or not sv.clean
+
+    # Newton Architect is the source authority for this project, so it gates
+    # every verification path — not just the engine/policy one. Without this
+    # the nexus -> hardened pipeline was a bypass: an artifact carrying a
+    # vacuous Lean placeholder or an epoch-stripped cosmological claim could
+    # reach EVIDENCE_SUPPORTED here while the same artifact was blocked by
+    # mvpc.policy. Every Newton finding is Severity.VIOLATION and blocks.
+    newton_findings = scan_artifact_text(code)
+    if newton_findings:
+        axioms = list({*axioms, *[f.code for f in newton_findings]})
+
+    syntax_ok = (
+        any(tok in code for tok in required_any) if required_any else bool(code.strip())
+    )
+    has_bad = bool(axioms) or not sv.clean or bool(newton_findings)
     if has_bad:
         verdict = TrustVerdict.EVIDENCE_SUPPORTED.value
         heuristic_pass = False
@@ -172,8 +194,14 @@ def _heuristic_verify(
 class MultiBackendVerificationArray:
     def verify_claim(self, claim: NeutralClaim) -> VerificationResult:
         table = {
-            TargetBackend.LEAN4: (["sorry", "sorryAx"], ["theorem", "lemma", "def", "example"]),
-            TargetBackend.ROCQ: (["Admitted", "admit"], ["Theorem", "Lemma", "Definition"]),
+            TargetBackend.LEAN4: (
+                ["sorry", "sorryAx"],
+                ["theorem", "lemma", "def", "example"],
+            ),
+            TargetBackend.ROCQ: (
+                ["Admitted", "admit"],
+                ["Theorem", "Lemma", "Definition"],
+            ),
             TargetBackend.ISABELLE: (["sorry"], ["lemma", "theorem", "by"]),
             TargetBackend.DAFNY: (["assume"], ["method", "lemma", "function"]),
         }
@@ -191,7 +219,10 @@ class MultiBackendVerificationArray:
                 error_message=f"Unsupported backend: {claim.target_backend}",
             )
         return _heuristic_verify(
-            claim, backend=claim.target_backend, forbidden=forbidden, required_any=required
+            claim,
+            backend=claim.target_backend,
+            forbidden=forbidden,
+            required_any=required,
         )
 
 
@@ -259,6 +290,9 @@ class EvidenceManifest:
     safe_verify_passed: bool
     evidence_chain_hash: str
     driver_mode: str = "heuristic"
+    # Records which authority gated this evidence, so a manifest is
+    # self-describing about the protocol it was judged under.
+    newton_authority: str = AUTHORITY
 
 
 class ImmutableEvidenceLedger:
@@ -277,7 +311,11 @@ class ImmutableEvidenceLedger:
         leakage_ok: bool,
         safe_verify_ok: bool,
     ) -> EvidenceManifest:
-        prev = self.chain[-1].evidence_chain_hash if self.chain else "GENESIS_BLOCK_0000000000000000"
+        prev = (
+            self.chain[-1].evidence_chain_hash
+            if self.chain
+            else "GENESIS_BLOCK_0000000000000000"
+        )
         ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         payload = (
             f"{prev}|{claim.claim_id}|{verification_result.trust_verdict}|"
@@ -343,7 +381,10 @@ class SovereignNexusPipeline:
 
         si_ok = phys_res["zero_leakage_certified"]
         cps_ok = phys_res["cps_safety_passed"]
-        if not claim.physical_realization_profile.requires_cps_bounds and trajectory_data is None:
+        if (
+            not claim.physical_realization_profile.requires_cps_bounds
+            and trajectory_data is None
+        ):
             cps_ok = True
 
         safe_ok, safe_msg = SafeVerifyAxiomAuditor.audit_verification_result(v_result)
@@ -381,7 +422,10 @@ class SovereignNexusPipeline:
                 "Heuristic backend path. FORMALLY_CHECKED requires real kernel acceptance."
             ),
             "verification_result": asdict(v_result),
-            "groebner_cas_certification": {"certified": groebner_ok, "details": groebner_msg},
+            "groebner_cas_certification": {
+                "certified": groebner_ok,
+                "details": groebner_msg,
+            },
             "si_dimension_certification": {
                 "certified": si_ok,
                 "details": phys_res["zero_leakage_details"],
