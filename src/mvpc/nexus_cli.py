@@ -13,7 +13,7 @@ from pathlib import Path
 try:
     from mvpc import __version__
 except Exception:  # pragma: no cover
-    __version__ = "8.0.0-dev"
+    __version__ = "8.0.0"
 
 from mvpc.nexus_pipeline import SovereignNexusPipeline
 from mvpc.phys.hybrid_automata import CPSSafetyAuditor, SafetyBounds
@@ -102,7 +102,9 @@ def cmd_cps_check(args: argparse.Namespace) -> int:
         temp_prof = [295.0, 310.0, 325.0]
 
     bounds = SafetyBounds(max_velocity=args.v_max, max_temperature=args.temp_max)
-    is_safe, violations = auditor.audit_trajectory(t_steps, v_prof, temp_prof, bounds=bounds)
+    is_safe, violations = auditor.audit_trajectory(
+        t_steps, v_prof, temp_prof, bounds=bounds
+    )
     print(
         json.dumps(
             {
@@ -143,7 +145,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="mvpc-nexus",
         description=f"MVPC Sovereign Nexus CLI v{__version__}",
     )
-    parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+    )
     sub = parser.add_subparsers(dest="command")
 
     p_audit = sub.add_parser("audit", help="Full Nexus audit pipeline")

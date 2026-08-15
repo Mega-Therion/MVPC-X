@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mvpc"
-version = "7.3.0"
+version = "8.0.0"
 authors = [
   { name = "Sovereign Physics Lab", email = "viewsbyryan@gmail.com" },
 ]

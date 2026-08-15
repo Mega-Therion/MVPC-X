@@ -1,5 +1,6 @@
 """MVPC-X — Sovereign Claim-Verification Infrastructure & Reproducible Epistemic Engine."""
-__version__ = "7.3.0"
+
+from mvpc.version import __version__  # single source of truth
 
 from mvpc.claim import Claim, create_claim
 from mvpc.evidence import Evidence, EvidenceType

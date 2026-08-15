@@ -1,3 +1,7 @@
+import re
+import tomllib
+from pathlib import Path
+
 from mvpc.hardened_pipeline import HardenedSovereignPipeline
 from mvpc.kernel_backends import run_kernel
 from mvpc.trust_verdicts import TrustVerdict
@@ -5,7 +9,20 @@ from mvpc.version import __version__
 
 
 def test_version():
-    assert __version__ == "8.0.0"
+    # Pin the shape and the agreement, not the literal — the repo previously
+    # carried four different versions at once because each site had its own
+    # hardcoded string.
+    assert re.fullmatch(r"\d+\.\d+\.\d+", __version__), __version__
+
+    root = Path(__file__).resolve().parent.parent
+    assert (root / "VERSION").read_text().strip() == __version__
+
+    with open(root / "pyproject.toml", "rb") as fh:
+        assert tomllib.load(fh)["project"]["version"] == __version__
+
+    import mvpc
+
+    assert mvpc.__version__ == __version__
 
 
 def test_kernel_heuristic_without_binary():
@@ -50,5 +67,8 @@ def test_hardened_pipeline_clean_signs():
         cas_polynomials=("x - x", ["x - x"], "x"),
         enable_repair=False,
     )
-    assert out["trust_verdict"] != TrustVerdict.FORMALLY_CHECKED.value or out["kernel"]["driver_mode"] == "kernel"
+    assert (
+        out["trust_verdict"] != TrustVerdict.FORMALLY_CHECKED.value
+        or out["kernel"]["driver_mode"] == "kernel"
+    )
     assert out["consensus"]["pass_count"] >= 0

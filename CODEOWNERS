@@ -1,0 +1,4 @@
+# CODEOWNERS
+# This file designates the default maintainer(s) for the repository.
+# Replace the placeholder email with actual maintainers when known.
+* @maintainers@mvpc-x.org
