@@ -1,4 +1,7 @@
+import textwrap
+
 from mvpc.assurance import AssuranceLevel, VerificationEvidence, derive_assurance
+from mvpc.claim import load_claim_from_yaml
 from mvpc.claim_binding import SemanticTest, bind_claim_to_formal_proof
 from mvpc.formalization import build_formalization_review
 from mvpc.trust_verdicts import TrustVerdict
@@ -82,3 +85,25 @@ def test_proof_record_binds_exact_proof_identity():
     tampered = ProofRecord(binding, plan, review, [bad])
     assert tampered.bindings_valid is False
     assert "artifact hash mismatch" in tampered.validation_errors()[0]
+
+
+def test_claim_manifest_yaml_round_trip(tmp_path):
+    manifest = textwrap.dedent("""
+        claim:
+          id: C-YAML-1
+          statement: "3 + 4 = 7"
+          origin: human
+          scope: "integer arithmetic"
+          assumptions:
+            - "standard arithmetic"
+          evidence:
+            - type: computation
+              path: result.py
+    """)
+    path = tmp_path / "claim.yaml"
+    path.write_text(manifest, encoding="utf-8")
+    claim = load_claim_from_yaml(str(path))
+    assert claim.id == "C-YAML-1"
+    assert claim.statement == "3 + 4 = 7"
+    assert claim.assumptions == ["standard arithmetic"]
+    assert claim.evidence[0].artifact_path == "result.py"
