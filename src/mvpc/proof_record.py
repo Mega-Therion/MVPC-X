@@ -10,6 +10,7 @@ from .claim_binding import ClaimBinding
 from .formalization import FormalizationReview
 from .trust_verdicts import TrustVerdict
 from .verification_plan import CheckKind, VerificationPlan, VerificationResult
+from .witness_seal import seal_payload, verify_sealed_payload
 
 
 @dataclass
@@ -33,22 +34,7 @@ class ProofRecord:
 
     @property
     def bindings_valid(self) -> bool:
-        if self.binding.claim_id != self.plan.claim_id:
-            return False
-        if self.formalization is not None and self.formalization.claim_id != self.binding.claim_id:
-            return False
-        formal_results = [r for r in self.results if r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED]
-        if not formal_results:
-            return True
-        if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
-            return False
-        if self.formalization is not None and not self.formalization.approved_for_formal_check:
-            return False
-        return all(
-            r.declaration == self.binding.declaration
-            and r.artifact_hash == self.binding.proof_artifact_hash
-            for r in formal_results
-        )
+        return not self.validation_errors()
 
     def validation_errors(self) -> list[str]:
         errors: list[str] = []
@@ -56,17 +42,17 @@ class ProofRecord:
             errors.append("claim_id mismatch between binding and verification plan")
         if self.formalization is not None and self.formalization.claim_id != self.binding.claim_id:
             errors.append("claim_id mismatch between binding and formalization review")
-        for result in self.results:
-            if result.kind is CheckKind.FORMAL and result.verdict is TrustVerdict.FORMALLY_CHECKED:
+        formal_results = [r for r in self.results if r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED]
+        if formal_results:
+            if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
+                errors.append("formal result lacks complete binding identity")
+            for result in formal_results:
                 if result.artifact_hash != self.binding.proof_artifact_hash:
                     errors.append(f"formal artifact hash mismatch for {result.target_backend}")
                 if result.declaration != self.binding.declaration:
                     errors.append(f"formal declaration mismatch for {result.target_backend}")
-        if self.formalization is not None and not self.formalization.approved_for_formal_check:
-            errors.append("formalization review is not approved for formal checking")
-        if any(r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED for r in self.results):
-            if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
-                errors.append("formal result lacks complete binding identity")
+            if self.formalization is not None and not self.formalization.approved_for_formal_check:
+                errors.append("formalization review is not approved for formal checking")
         return errors
 
     @property
@@ -101,11 +87,11 @@ class ProofRecord:
                     "kind": e.kind,
                     "verdict": e.verdict.value,
                     "foundation": e.foundation,
-                    "independence_group": e.independence_group,
                     "environment_id": e.environment_id,
                     "artifact_hash": e.artifact_hash,
                     "declaration": e.declaration,
                     "notes": e.notes,
+                    "independence_group": e.independence_group,
                 }
                 for e in self.supplemental_evidence
             ],
@@ -121,3 +107,13 @@ class ProofRecord:
 
     def canonical_json(self) -> str:
         return canonical_json(self.to_dict())
+
+    def seal(self, private_key_hex: str) -> dict[str, Any]:
+        """Seal this proof record after validating its identity chain."""
+        if not self.bindings_valid:
+            raise ValueError("cannot seal invalid proof record: " + "; ".join(self.validation_errors()))
+        return seal_payload(self.to_dict(), private_key_hex)
+
+    @staticmethod
+    def verify_seal(bundle: dict[str, Any]) -> bool:
+        return verify_sealed_payload(bundle)
