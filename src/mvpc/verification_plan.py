@@ -60,7 +60,7 @@ class VerificationResult:
             kind=self.kind.value,
             verdict=self.verdict,
             foundation=self.foundation,
-            independent_from=frozenset({self.independent_group}) if self.independent_group else frozenset(),
+            independence_group=self.independent_group,
             environment_id=self.environment_id,
             artifact_hash=self.artifact_hash,
             declaration=self.declaration,
