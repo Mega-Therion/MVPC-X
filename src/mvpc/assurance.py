@@ -1,10 +1,4 @@
-"""Claim-centric assurance model for MVPC-X.
-
-Assurance is deliberately separate from individual trust verdicts. A verdict
-records what one check established; an assurance profile describes the set of
-independent evidence required for a claim to reach a named level.
-"""
-
+"""Claim-centric assurance model for MVPC-X."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -15,8 +9,6 @@ from .trust_verdicts import TrustVerdict
 
 
 class AssuranceLevel(IntEnum):
-    """Monotonic MVPC-X Diamond Assurance levels D0 through D6."""
-
     D0_PROPOSED = 0
     D1_REPRODUCIBLY_COMPUTED = 1
     D2_FORMALLY_CHECKED = 2
@@ -39,6 +31,7 @@ class VerificationEvidence:
     verdict: TrustVerdict
     foundation: str | None = None
     independent_from: FrozenSet[str] = field(default_factory=frozenset)
+    independence_group: str | None = None
     environment_id: str | None = None
     artifact_hash: str | None = None
     declaration: str | None = None
@@ -52,12 +45,7 @@ class VerificationEvidence:
 
 
 def derive_assurance(evidence: Iterable[VerificationEvidence]) -> AssuranceLevel:
-    """Derive the highest defensible assurance level from recorded evidence.
-
-    This function is intentionally conservative. It never treats model
-    agreement or a raw execution as formal proof, and it requires explicit
-    evidence for each higher assurance boundary.
-    """
+    """Return the highest level justified by explicit evidence only."""
     items = tuple(evidence)
     verdicts = {item.verdict for item in items}
     if TrustVerdict.REJECTED in verdicts or TrustVerdict.UNSAFE_TO_VERIFY in verdicts:
@@ -65,39 +53,36 @@ def derive_assurance(evidence: Iterable[VerificationEvidence]) -> AssuranceLevel
     if not items:
         return AssuranceLevel.D0_PROPOSED
 
+    formal_items = [item for item in items if item.verdict is TrustVerdict.FORMALLY_CHECKED]
     computation = TrustVerdict.COMPUTATION_VERIFIED in verdicts
-    formal = TrustVerdict.FORMALLY_CHECKED in verdicts
-    human = TrustVerdict.HUMAN_ATTESTED in verdicts
+    if not formal_items:
+        return AssuranceLevel.D1_REPRODUCIBLY_COMPUTED if computation else AssuranceLevel.D0_PROPOSED
 
-    if formal:
-        level = AssuranceLevel.D2_FORMALLY_CHECKED
-    elif computation:
-        level = AssuranceLevel.D1_REPRODUCIBLY_COMPUTED
-    else:
-        level = AssuranceLevel.D0_PROPOSED
-
-    if not formal:
-        return level
-
+    level = AssuranceLevel.D2_FORMALLY_CHECKED
     hardened_kinds = {"signature", "environment", "axiom_audit", "provenance"}
     if hardened_kinds.issubset({item.kind for item in items}):
         level = AssuranceLevel.D3_HARDENED_FORMAL
 
-    formal_sources = [item for item in items if item.verdict == TrustVerdict.FORMALLY_CHECKED]
-    independent = any(
-        other.source_id != first.source_id
-        and (other.source_id in first.independent_from or first.source_id in other.independent_from)
-        for index, first in enumerate(formal_sources)
-        for other in formal_sources[index + 1 :]
+    formal_sources = {item.source_id for item in formal_items}
+    formal_groups = {
+        item.independence_group
+        for item in formal_items
+        if item.independence_group is not None
+    }
+    explicit_pair = any(
+        other.source_id in first.independent_from or first.source_id in other.independent_from
+        for index, first in enumerate(formal_items)
+        for other in formal_items[index + 1 :]
     )
+    independent = len(formal_sources) >= 2 and (len(formal_groups) >= 2 or explicit_pair)
     if level >= AssuranceLevel.D3_HARDENED_FORMAL and independent:
         level = AssuranceLevel.D4_INDEPENDENTLY_RECHECKED
 
-    foundations = {item.foundation for item in formal_sources if item.foundation}
+    foundations = {item.foundation for item in formal_items if item.foundation}
     if level >= AssuranceLevel.D4_INDEPENDENTLY_RECHECKED and len(foundations) >= 2:
         level = AssuranceLevel.D5_CROSS_FOUNDATION
 
+    human = TrustVerdict.HUMAN_ATTESTED in verdicts
     if level >= AssuranceLevel.D5_CROSS_FOUNDATION and human:
         level = AssuranceLevel.D6_PUBLICATION_GRADE
-
     return level
