@@ -10,6 +10,7 @@ from mvpc.assurance import AssuranceLevel, VerificationEvidence, derive_assuranc
 from mvpc.formalization import FormalizationReview, build_formalization_review
 from mvpc.verification_plan import CheckKind, VerificationPlan, VerificationTarget, VerificationResult
 from mvpc.verification_fabric import VerificationFabric
+from mvpc.backend_adapter import register_default_backends
 from mvpc.proof_record import ProofRecord
 from mvpc.witness_seal import generate_signing_keypair, seal_payload, verify_sealed_payload
 from mvpc.provenance import Provenance, SourceType, AIProvenance
@@ -24,9 +25,9 @@ __all__ = [
     "bind_claim_to_formal_proof", "Evidence", "EvidenceType", "AttestationState",
     "TrustVerdict", "AssuranceLevel", "VerificationEvidence", "derive_assurance",
     "FormalizationReview", "build_formalization_review", "CheckKind", "VerificationPlan",
-    "VerificationTarget", "VerificationResult", "VerificationFabric", "ProofRecord",
-    "generate_signing_keypair", "seal_payload", "verify_sealed_payload", "Finding", "Severity",
-    "CoverageReport", "Provenance", "SourceType", "AIProvenance", "PolicyLevel", "Policy",
-    "get_policy", "evaluate_attestation", "Witness", "generate_witness", "get_explanation",
+    "VerificationTarget", "VerificationResult", "VerificationFabric", "register_default_backends",
+    "ProofRecord", "generate_signing_keypair", "seal_payload", "verify_sealed_payload", "Finding",
+    "Severity", "CoverageReport", "Provenance", "SourceType", "AIProvenance", "PolicyLevel",
+    "Policy", "get_policy", "evaluate_attestation", "Witness", "generate_witness", "get_explanation",
     "compute_system_fingerprint", "IntegritySession", "run_preflight",
 ]
