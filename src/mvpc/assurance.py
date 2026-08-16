@@ -31,11 +31,11 @@ class VerificationEvidence:
     verdict: TrustVerdict
     foundation: str | None = None
     independent_from: FrozenSet[str] = field(default_factory=frozenset)
-    independence_group: str | None = None
     environment_id: str | None = None
     artifact_hash: str | None = None
     declaration: str | None = None
     notes: str | None = None
+    independence_group: str | None = None
 
     def __post_init__(self) -> None:
         if not self.source_id.strip():
