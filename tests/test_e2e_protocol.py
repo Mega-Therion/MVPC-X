@@ -74,13 +74,16 @@ def _bound_fixture():
     return binding, plan, review
 
 
-def test_proof_record_binds_exact_proof_identity():
+def test_proof_record_binds_exact_proof_identity_and_can_seal():
     binding, plan, review = _bound_fixture()
     good = VerificationResult("lean", CheckKind.FORMAL, TrustVerdict.FORMALLY_CHECKED, artifact_hash="hash-proof", artifact_path="proof.lean", foundation="Lean", independent_group="A", declaration="theorem_a")
     record = ProofRecord(binding, plan, review, [good])
     assert record.bindings_valid is True
     assert record.assurance_level == AssuranceLevel.D2_FORMALLY_CHECKED
     assert record.record_digest
+    private_key, _ = generate_signing_keypair()
+    sealed = record.seal(private_key)
+    assert ProofRecord.verify_seal(sealed)
 
     bad = VerificationResult("lean", CheckKind.FORMAL, TrustVerdict.FORMALLY_CHECKED, artifact_hash="wrong-hash", artifact_path="proof.lean", foundation="Lean", independent_group="A", declaration="theorem_a")
     tampered = ProofRecord(binding, plan, review, [bad])
