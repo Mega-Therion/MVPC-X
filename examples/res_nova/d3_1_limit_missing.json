@@ -1,0 +1,9 @@
+{
+  "case_id": "res-nova:D3.1",
+  "natural_claim": "lim_{x to infinity} mu(x) = 1 is formally proved.",
+  "formal_proposition": "A theorem of the form Tendsto mu atTop (nhds 1) exists in the tracked Lean suite.",
+  "artifact": "05_lean_formalization/PPNLimits.lean",
+  "artifact_hash": "git-tree:Res-Nova@5e9dea2",
+  "expected_max_assurance": "D0_PROPOSED",
+  "refusal_rule": "Reject any D2+ judgment unless an actual asymptotic-limit declaration is present. Finite-threshold bounds are not a limit theorem."
+}

@@ -1,0 +1,9 @@
+{
+  "case_id": "res-nova:phantom-modules",
+  "natural_claim": "The tracked Lean suite contains modules named HorizonScale.lean and PPNParameters.lean.",
+  "formal_proposition": "git ls-files on Res Nova main contains those exact paths.",
+  "artifact": "git ls-files 05_lean_formalization/*.lean",
+  "artifact_hash": "git-tree:Res-Nova@5e9dea2",
+  "expected_max_assurance": "D0_PROPOSED",
+  "refusal_rule": "Reject immediately if the claimed filenames are absent from the tracked tree."
+}

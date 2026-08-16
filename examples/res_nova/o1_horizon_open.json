@@ -1,0 +1,9 @@
+{
+  "case_id": "res-nova:O1",
+  "natural_claim": "a0 = cH0/(2 pi) is an open horizon-identity hypothesis, not a derived theorem.",
+  "formal_proposition": "No tracked theorem derives the 1/(2 pi) divisor. The empirical measurement is a separate computational claim.",
+  "artifact": "04_cosmology/A0_AND_OMEGA_NORMALIZATION_LEDGER.md",
+  "artifact_hash": "git-tree:Res-Nova@5e9dea2",
+  "expected_max_assurance": "D1_REPRODUCIBLY_COMPUTED",
+  "refusal_rule": "Do not let a SPARC measurement upgrade a horizon derivation into formal proof."
+}

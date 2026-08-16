@@ -1,0 +1,9 @@
+{
+  "case_id": "res-nova:D1.2",
+  "natural_claim": "Dual-channel action F_dual(x)=x^2/2-x+ln(1+x) yields mu(x)=x/(1+x) with the correct Newtonian and deep-MOND limits.",
+  "formal_proposition": "The declared Lean theorems dual_channel_flux_algebra, mu_derived_inversion, mu_derived_deep_mond_upper_bound, and mu_derived_newtonian_bound establish the algebraic closure and finite-limit bounds in the tracked tree.",
+  "artifact": "05_lean_formalization/DualChannelDerivation.lean",
+  "artifact_hash": "git-tree:Res-Nova@5e9dea2",
+  "expected_max_assurance": "D2_FORMALLY_CHECKED",
+  "refusal_rule": "Do not treat one local gate pass as hardened or independently rechecked evidence. Do not treat an algebraic identity as proof that nature selected the action."
+}

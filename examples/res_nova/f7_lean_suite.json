@@ -1,0 +1,9 @@
+{
+  "case_id": "res-nova:F7",
+  "natural_claim": "The Res Nova Lean suite contains 17 tracked modules that elaborate with zero sorry and only standard foundational axioms.",
+  "formal_proposition": "verify_all_proofs.sh passes on the exact tracked 17-file target list under Lean v4.33.0-rc1 and Mathlib 5eec30bc.",
+  "artifact": "VERIFICATION_RUN_007/01_lean/",
+  "artifact_hash": "git-tree:Res-Nova@5e9dea2",
+  "expected_max_assurance": "D2_FORMALLY_CHECKED",
+  "refusal_rule": "One clean-worktree local run is not D3, D4, D5, or D6. Absence of keyword 'axiom' does not prove absence of assumptions carried as fields or hypotheses."
+}
