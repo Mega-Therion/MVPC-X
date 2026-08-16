@@ -6,6 +6,7 @@ from mvpc.claim_binding import SemanticTest, bind_claim_to_formal_proof
 from mvpc.formalization import build_formalization_review
 from mvpc.trust_verdicts import TrustVerdict
 from mvpc.verification_plan import CheckKind, VerificationPlan, VerificationResult, VerificationTarget
+from mvpc.verification_fabric import VerificationFabric
 from mvpc.proof_record import ProofRecord
 from mvpc.witness_seal import generate_signing_keypair, seal_payload, verify_sealed_payload
 
@@ -107,3 +108,28 @@ def test_claim_manifest_yaml_round_trip(tmp_path):
     assert claim.statement == "3 + 4 = 7"
     assert claim.assumptions == ["standard arithmetic"]
     assert claim.evidence[0].artifact_path == "result.py"
+
+
+def test_fabric_executes_only_registered_verifier_and_preserves_identity():
+    binding, plan, review = _bound_fixture()
+    fabric = VerificationFabric()
+
+    def fake_adapter(*, target, binding, formalization):
+        assert binding.claim_id == "C-99"
+        assert formalization.approved_for_formal_check is True
+        return VerificationResult(
+            target_backend=target.backend,
+            kind=target.kind,
+            verdict=TrustVerdict.FORMALLY_CHECKED,
+            artifact_hash=binding.proof_artifact_hash,
+            artifact_path=target.artifact_path,
+            foundation=target.foundation,
+            independent_group=target.independent_group,
+            declaration=binding.declaration,
+        )
+
+    fabric.register("lean", fake_adapter)
+    record = fabric.verify(binding=binding, plan=plan, formalization=review)
+    assert len(record.results) == 1
+    assert record.bindings_valid is True
+    assert record.assurance_level == AssuranceLevel.D2_FORMALLY_CHECKED
