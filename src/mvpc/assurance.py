@@ -1,4 +1,10 @@
-"""Claim-centric assurance model for MVPC-X."""
+"""Claim-centric assurance model for MVPC-X.
+
+Assurance is deliberately separate from individual trust verdicts. A verdict
+records what one check established; an assurance profile describes the set of
+independent evidence required for a claim to reach a named level.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,6 +15,8 @@ from .trust_verdicts import TrustVerdict
 
 
 class AssuranceLevel(IntEnum):
+    """Monotonic MVPC-X Diamond Assurance levels D0 through D6."""
+
     D0_PROPOSED = 0
     D1_REPRODUCIBLY_COMPUTED = 1
     D2_FORMALLY_CHECKED = 2
@@ -24,8 +32,14 @@ class AssuranceLevel(IntEnum):
 
 @dataclass(frozen=True)
 class VerificationEvidence:
-    """One machine- or human-produced evidence item bound to a claim."""
+    """One machine- or human-produced evidence item bound to a claim.
 
+    A claim cannot climb past D1 unless the evidence names the proposition and
+    artifact it verifies. Independence is recorded, never inferred from prose.
+    """
+
+    claim_id: str
+    proposition: str
     source_id: str
     kind: str
     verdict: TrustVerdict
@@ -34,55 +48,72 @@ class VerificationEvidence:
     environment_id: str | None = None
     artifact_hash: str | None = None
     declaration: str | None = None
+    human_review_scope: str | None = None
     notes: str | None = None
-    independence_group: str | None = None
 
     def __post_init__(self) -> None:
-        if not self.source_id.strip():
-            raise ValueError("source_id must not be empty")
-        if not self.kind.strip():
-            raise ValueError("kind must not be empty")
+        for field_name in ("claim_id", "proposition", "source_id", "kind"):
+            if not getattr(self, field_name).strip():
+                raise ValueError(f"{field_name} must not be empty")
+        if self.verdict is TrustVerdict.FORMALLY_CHECKED and not self.artifact_hash:
+            raise ValueError("formal verification evidence requires artifact_hash")
 
 
 def derive_assurance(evidence: Iterable[VerificationEvidence]) -> AssuranceLevel:
-    """Return the highest level justified by explicit evidence only."""
+    """Derive the highest defensible assurance level from recorded evidence.
+
+    Conservative rule: evidence only supports its own claim/proposition/artifact.
+    Model agreement, unrelated compilation, and unscoped human attestation do not
+    upgrade assurance.
+    """
     items = tuple(evidence)
-    verdicts = {item.verdict for item in items}
-    if TrustVerdict.REJECTED in verdicts or TrustVerdict.UNSAFE_TO_VERIFY in verdicts:
-        return AssuranceLevel.D0_PROPOSED
     if not items:
         return AssuranceLevel.D0_PROPOSED
 
-    formal_items = [item for item in items if item.verdict is TrustVerdict.FORMALLY_CHECKED]
-    computation = TrustVerdict.COMPUTATION_VERIFIED in verdicts
-    if not formal_items:
-        return AssuranceLevel.D1_REPRODUCIBLY_COMPUTED if computation else AssuranceLevel.D0_PROPOSED
+    claim_ids = {item.claim_id for item in items}
+    propositions = {item.proposition for item in items}
+    artifact_hashes = {item.artifact_hash for item in items if item.artifact_hash}
+    if len(claim_ids) > 1 or len(propositions) > 1 or len(artifact_hashes) > 1:
+        return AssuranceLevel.D0_PROPOSED
 
-    level = AssuranceLevel.D2_FORMALLY_CHECKED
+    verdicts = {item.verdict for item in items}
+    if TrustVerdict.REJECTED in verdicts or TrustVerdict.UNSAFE_TO_VERIFY in verdicts:
+        return AssuranceLevel.D0_PROPOSED
+
+    computation = TrustVerdict.COMPUTATION_VERIFIED in verdicts
+    formal_sources = [item for item in items if item.verdict == TrustVerdict.FORMALLY_CHECKED]
+    formal = bool(formal_sources)
+    human_review = any(
+        item.verdict is TrustVerdict.HUMAN_ATTESTED and item.human_review_scope
+        for item in items
+    )
+
+    if formal:
+        level = AssuranceLevel.D2_FORMALLY_CHECKED
+    elif computation:
+        level = AssuranceLevel.D1_REPRODUCIBLY_COMPUTED
+    else:
+        return AssuranceLevel.D0_PROPOSED
+
     hardened_kinds = {"signature", "environment", "axiom_audit", "provenance"}
-    if hardened_kinds.issubset({item.kind for item in items}):
+    present_kinds = {item.kind for item in items}
+    if hardened_kinds.issubset(present_kinds):
         level = AssuranceLevel.D3_HARDENED_FORMAL
 
-    formal_sources = {item.source_id for item in formal_items}
-    formal_groups = {
-        item.independence_group
-        for item in formal_items
-        if item.independence_group is not None
-    }
-    explicit_pair = any(
-        other.source_id in first.independent_from or first.source_id in other.independent_from
-        for index, first in enumerate(formal_items)
-        for other in formal_items[index + 1 :]
+    independent = any(
+        other.source_id != first.source_id
+        and (other.source_id in first.independent_from or first.source_id in other.independent_from)
+        for index, first in enumerate(formal_sources)
+        for other in formal_sources[index + 1 :]
     )
-    independent = len(formal_sources) >= 2 and (len(formal_groups) >= 2 or explicit_pair)
     if level >= AssuranceLevel.D3_HARDENED_FORMAL and independent:
         level = AssuranceLevel.D4_INDEPENDENTLY_RECHECKED
 
-    foundations = {item.foundation for item in formal_items if item.foundation}
+    foundations = {item.foundation for item in formal_sources if item.foundation}
     if level >= AssuranceLevel.D4_INDEPENDENTLY_RECHECKED and len(foundations) >= 2:
         level = AssuranceLevel.D5_CROSS_FOUNDATION
 
-    human = TrustVerdict.HUMAN_ATTESTED in verdicts
-    if level >= AssuranceLevel.D5_CROSS_FOUNDATION and human:
+    if level >= AssuranceLevel.D5_CROSS_FOUNDATION and human_review:
         level = AssuranceLevel.D6_PUBLICATION_GRADE
+
     return level
