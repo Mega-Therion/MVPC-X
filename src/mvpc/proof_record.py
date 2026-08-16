@@ -8,7 +8,8 @@ from .assurance import AssuranceLevel, VerificationEvidence, derive_assurance
 from .canonical import canonical_json, hash_canonical
 from .claim_binding import ClaimBinding
 from .formalization import FormalizationReview
-from .verification_plan import VerificationPlan, VerificationResult
+from .trust_verdicts import TrustVerdict
+from .verification_plan import CheckKind, VerificationPlan, VerificationResult
 
 
 @dataclass
@@ -26,7 +27,47 @@ class ProofRecord:
 
     @property
     def assurance_level(self) -> AssuranceLevel:
+        if not self.bindings_valid:
+            return AssuranceLevel.D0_PROPOSED
         return derive_assurance(self.evidence)
+
+    @property
+    def bindings_valid(self) -> bool:
+        if self.binding.claim_id != self.plan.claim_id:
+            return False
+        if self.formalization is not None and self.formalization.claim_id != self.binding.claim_id:
+            return False
+        formal_results = [r for r in self.results if r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED]
+        if not formal_results:
+            return True
+        if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
+            return False
+        if self.formalization is not None and not self.formalization.approved_for_formal_check:
+            return False
+        return all(
+            r.declaration == self.binding.declaration
+            and r.artifact_hash == self.binding.proof_artifact_hash
+            for r in formal_results
+        )
+
+    def validation_errors(self) -> list[str]:
+        errors: list[str] = []
+        if self.binding.claim_id != self.plan.claim_id:
+            errors.append("claim_id mismatch between binding and verification plan")
+        if self.formalization is not None and self.formalization.claim_id != self.binding.claim_id:
+            errors.append("claim_id mismatch between binding and formalization review")
+        for result in self.results:
+            if result.kind is CheckKind.FORMAL and result.verdict is TrustVerdict.FORMALLY_CHECKED:
+                if result.artifact_hash != self.binding.proof_artifact_hash:
+                    errors.append(f"formal artifact hash mismatch for {result.target_backend}")
+                if result.declaration != self.binding.declaration:
+                    errors.append(f"formal declaration mismatch for {result.target_backend}")
+        if self.formalization is not None and not self.formalization.approved_for_formal_check:
+            errors.append("formalization review is not approved for formal checking")
+        if any(r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED for r in self.results):
+            if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
+                errors.append("formal result lacks complete binding identity")
+        return errors
 
     @property
     def record_digest(self) -> str:
@@ -60,6 +101,7 @@ class ProofRecord:
                     "kind": e.kind,
                     "verdict": e.verdict.value,
                     "foundation": e.foundation,
+                    "independence_group": e.independence_group,
                     "environment_id": e.environment_id,
                     "artifact_hash": e.artifact_hash,
                     "declaration": e.declaration,
@@ -68,6 +110,8 @@ class ProofRecord:
                 for e in self.supplemental_evidence
             ],
             "witness_id": self.witness_id,
+            "bindings_valid": self.bindings_valid,
+            "validation_errors": self.validation_errors(),
             "assurance_level": int(self.assurance_level),
             "assurance_label": self.assurance_level.label,
         }
