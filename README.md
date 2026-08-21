@@ -101,6 +101,30 @@ mvpc witness export path/to/Theorem.lean --out witness.json
 
 ---
 
+## Sovereign Nexus Control Plane
+
+The **Sovereign Nexus** adds source-agnostic structural intake, PANI-neutral policy gates, local backend receipts, permanent linked manifests, and a Glass Box presentation contract. It is additive: existing `mvpc audit`, `mvpc preflight`, and `mvpc integrity` workflows remain unchanged.
+
+```bash
+# Create a workspace with human intent, formal source, CAS certificate, and linked ledger metadata
+mvpc scaffold nexus ./nexus-workspace
+
+# Non-executing preview: normalize source and render Glass Box data
+mvpc nexus inspect ./nexus-workspace/formal/Basic.lean --plan "$(cat ./nexus-workspace/intent.md)"
+
+# Local verification with pre/mid/post fingerprints and paired JSON/Markdown manifests
+mvpc nexus verify ./nexus-workspace/formal/Basic.lean \
+  --plan "$(cat ./nexus-workspace/intent.md)" \
+  --ledger-dir ./nexus-workspace/ledger/manifests
+
+# Exact polynomial-certificate check; this remains CAS evidence, not kernel proof
+mvpc nexus cas-verify ./nexus-workspace/cas/certificate.json
+```
+
+The Nexus preserves the distinction between proposal and proof. Natural-language and LaTeX material are normalized as `UNTRANSLATED`; a Green Glass Box state requires a qualifying native local backend receipt. Detailed activation, integrity constraints, and verdict rules are in [`docs/SOVEREIGN_NEXUS.md`](docs/SOVEREIGN_NEXUS.md).
+
+---
+
 ## 🔬 The Epistemic Taxonomy
 
 All audited claims are tagged with their exact mechanical epistemic classification:

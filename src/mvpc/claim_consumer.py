@@ -61,9 +61,17 @@ def _build_evidence(claim: dict[str, Any]) -> list[VerificationEvidence]:
     artifact_hash = primary_artifact.get("sha256", "unknown")
     source_id = verification.get("prover", "unspecified")
 
-    if tier == "[P]" and verification.get("pass") is True:
-        try:
-            evidence.append(VerificationEvidence(
+    # Older external fixtures use opaque non-empty artifact identifiers such as
+    # ``sha256:fake``. Preserve that compatibility while refusing an explicitly
+    # absent/unknown artifact identity, which is the phantom-proof condition.
+    concrete_hash = (
+        isinstance(artifact_hash, str)
+        and bool(artifact_hash.strip())
+        and artifact_hash.lower() != "unknown"
+    )
+    if tier == "[P]" and verification.get("pass") is True and concrete_hash:
+        evidence.append(
+            VerificationEvidence(
                 claim_id=claim_id,
                 proposition=proposition,
                 source_id=source_id,
@@ -71,54 +79,65 @@ def _build_evidence(claim: dict[str, Any]) -> list[VerificationEvidence]:
                 verdict=TrustVerdict.FORMALLY_CHECKED,
                 foundation=verification.get("mathlib_pin", "lean4"),
                 artifact_hash=artifact_hash,
-            ))
-        except ValueError:
-            evidence.append(VerificationEvidence(
+            )
+        )
+    elif tier == "[P]" and verification.get("pass") is True:
+        evidence.append(
+            VerificationEvidence(
+                claim_id=claim_id,
+                proposition=proposition,
+                source_id=source_id,
+                kind="proposal",
+                verdict=TrustVerdict.INCONCLUSIVE,
+                artifact_hash=artifact_hash,
+            )
+        )
+    elif tier == "[D]":
+        evidence.append(
+            VerificationEvidence(
                 claim_id=claim_id,
                 proposition=proposition,
                 source_id=source_id,
                 kind="computation",
                 verdict=TrustVerdict.COMPUTATION_VERIFIED,
                 artifact_hash=artifact_hash,
-            ))
-    elif tier == "[D]":
-        evidence.append(VerificationEvidence(
-            claim_id=claim_id,
-            proposition=proposition,
-            source_id=source_id,
-            kind="computation",
-            verdict=TrustVerdict.COMPUTATION_VERIFIED,
-            artifact_hash=artifact_hash,
-        ))
+            )
+        )
     else:
-        evidence.append(VerificationEvidence(
-            claim_id=claim_id,
-            proposition=proposition,
-            source_id=source_id,
-            kind="proposal",
-            verdict=TrustVerdict.INCONCLUSIVE,
-            artifact_hash=artifact_hash,
-        ))
+        evidence.append(
+            VerificationEvidence(
+                claim_id=claim_id,
+                proposition=proposition,
+                source_id=source_id,
+                kind="proposal",
+                verdict=TrustVerdict.INCONCLUSIVE,
+                artifact_hash=artifact_hash,
+            )
+        )
 
     if verification.get("axiom_footprint"):
-        evidence.append(VerificationEvidence(
-            claim_id=claim_id,
-            proposition=proposition,
-            source_id="axiom-audit",
-            kind="axiom_audit",
-            verdict=TrustVerdict.EVIDENCE_SUPPORTED,
-            artifact_hash=artifact_hash,
-        ))
+        evidence.append(
+            VerificationEvidence(
+                claim_id=claim_id,
+                proposition=proposition,
+                source_id="axiom-audit",
+                kind="axiom_audit",
+                verdict=TrustVerdict.EVIDENCE_SUPPORTED,
+                artifact_hash=artifact_hash,
+            )
+        )
 
     if verification.get("gate_script"):
-        evidence.append(VerificationEvidence(
-            claim_id=claim_id,
-            proposition=proposition,
-            source_id="environment",
-            kind="environment",
-            verdict=TrustVerdict.EVIDENCE_SUPPORTED,
-            artifact_hash=artifact_hash,
-        ))
+        evidence.append(
+            VerificationEvidence(
+                claim_id=claim_id,
+                proposition=proposition,
+                source_id="environment",
+                kind="environment",
+                verdict=TrustVerdict.EVIDENCE_SUPPORTED,
+                artifact_hash=artifact_hash,
+            )
+        )
 
     return evidence
 
@@ -136,22 +155,28 @@ def judge_bundle(bundle: dict[str, Any]) -> list[dict[str, Any]]:
             level = AssuranceLevel.D0_PROPOSED
             error = str(exc)
 
-        results.append({
-            "claim_id": claim_id,
-            "manifest_tier": claim.get("epistemic_tier", "[?]"),
-            "manifest_status": claim.get("status", "UNKNOWN"),
-            "assurance_level": level.name,
-            "assurance_value": int(level),
-            "evidence_count": len(evidence),
-            "error": error,
-        })
+        results.append(
+            {
+                "claim_id": claim_id,
+                "manifest_tier": claim.get("epistemic_tier", "[?]"),
+                "manifest_status": claim.get("status", "UNKNOWN"),
+                "assurance_level": level.name,
+                "assurance_value": int(level),
+                "evidence_count": len(evidence),
+                "error": error,
+            }
+        )
     return results
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="MVPC-X Claim Consumer — judge a fixture bundle")
+    parser = argparse.ArgumentParser(
+        description="MVPC-X Claim Consumer — judge a fixture bundle"
+    )
     parser.add_argument("--bundle", required=True, help="Path to fixture bundle JSON")
-    parser.add_argument("--json", action="store_true", help="Output as JSON instead of text")
+    parser.add_argument(
+        "--json", action="store_true", help="Output as JSON instead of text"
+    )
     args = parser.parse_args()
 
     bundle_path = Path(args.bundle)
@@ -176,7 +201,9 @@ def main() -> None:
         print(f"{'ID':<24} {'Manifest':<12} {'Assurance':<28} {'Ev#'}")
         print("-" * 72)
         for r in results:
-            print(f"{r['claim_id']:<24} {r['manifest_tier']:<12} {r['assurance_level']:<28} {r['evidence_count']}")
+            print(
+                f"{r['claim_id']:<24} {r['manifest_tier']:<12} {r['assurance_level']:<28} {r['evidence_count']}"
+            )
         print("-" * 72)
         print("These are MVPC-X judge verdicts, not self-reported statuses.")
         print("=" * 72)

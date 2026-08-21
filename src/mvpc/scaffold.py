@@ -1,11 +1,10 @@
 """Scaffold standard package shapes for higher-assurance audits."""
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Dict, List
 
-TEMPLATES: Dict[str, Dict[str, str]] = {
+TEMPLATES: dict[str, dict[str, str]] = {
     "lean": {
         "Basic.lean": """-- MVPC-X Lean template (stdlib-friendly; no Mathlib required)
 -- Replace with real mathematics. Never leave `sorry` in trusted surface.
@@ -78,6 +77,42 @@ mvpc audit claims.py --policy default
 ```
 """,
     },
+    "nexus": {
+        "intent.md": """# Human Intent
+
+State the mathematical or software-correctness objective, explicit assumptions, and the acceptable formal boundary. This document is explanatory only and is never treated as a proof object.
+""",
+        "formal/Basic.lean": """-- MVPC-X Sovereign Nexus formal artifact
+-- A kernel must accept this file before the Nexus can report FORMALLY_VERIFIED.
+
+theorem identity_nat (n : Nat) : n = n := by
+  rfl
+""",
+        "cas/certificate.json": """{
+  "variables": ["x"],
+  "target": "x^2 - 1",
+  "generators": ["x - 1"],
+  "coefficients": ["x + 1"]
+}
+""",
+        "ledger/manifests/ledger-index.json": """{
+  "entries": [],
+  "schema_version": "mvpc.nexus.ledger.v1"
+}
+""",
+        "README.md": """# MVPC-X Sovereign Nexus workspace
+
+This workspace separates human intent, formal source, CAS certificates, and the permanent ledger.
+
+```bash
+mvpc nexus inspect formal/Basic.lean --plan "$(cat intent.md)"
+mvpc nexus verify formal/Basic.lean --plan "$(cat intent.md)" --ledger-dir ledger/manifests
+mvpc nexus cas-verify cas/certificate.json
+```
+
+A successful CAS check is algebraic evidence only. Green status requires a real local formal-backend receipt. The ledger writes paired JSON and Markdown manifests that link to the prior manifest hash.
+""",
+    },
     "claim": {
         "claim.yaml": """# MVPC-X claim manifest template (multi-evidence package)
 claim:
@@ -119,11 +154,11 @@ ALIASES = {
 }
 
 
-def list_templates() -> List[str]:
+def list_templates() -> list[str]:
     return sorted(TEMPLATES.keys())
 
 
-def scaffold(kind: str, dest_dir: str, *, force: bool = False) -> List[str]:
+def scaffold(kind: str, dest_dir: str, *, force: bool = False) -> list[str]:
     """Write template files into dest_dir. Returns paths written."""
     key = ALIASES.get(kind.lower(), kind.lower())
     if key not in TEMPLATES:
@@ -132,9 +167,10 @@ def scaffold(kind: str, dest_dir: str, *, force: bool = False) -> List[str]:
         )
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
-    written: List[str] = []
+    written: list[str] = []
     for name, content in TEMPLATES[key].items():
         target = dest / name
+        target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists() and not force:
             raise FileExistsError(f"Refusing to overwrite {target} (use --force)")
         target.write_text(content, encoding="utf-8")

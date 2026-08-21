@@ -1,4 +1,5 @@
 """End-to-end, content-addressed proof record for MVPC-X."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -24,7 +25,15 @@ class ProofRecord:
 
     @property
     def evidence(self) -> tuple[VerificationEvidence, ...]:
-        return tuple([r.to_evidence() for r in self.results] + list(self.supplemental_evidence))
+        proposition = self.binding.formal_statement or self.binding.natural_statement
+        result_evidence = [
+            result.to_evidence(
+                claim_id=self.binding.claim_id,
+                proposition=proposition,
+            )
+            for result in self.results
+        ]
+        return tuple(result_evidence + list(self.supplemental_evidence))
 
     @property
     def assurance_level(self) -> AssuranceLevel:
@@ -40,19 +49,39 @@ class ProofRecord:
         errors: list[str] = []
         if self.binding.claim_id != self.plan.claim_id:
             errors.append("claim_id mismatch between binding and verification plan")
-        if self.formalization is not None and self.formalization.claim_id != self.binding.claim_id:
+        if (
+            self.formalization is not None
+            and self.formalization.claim_id != self.binding.claim_id
+        ):
             errors.append("claim_id mismatch between binding and formalization review")
-        formal_results = [r for r in self.results if r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED]
+        formal_results = [
+            r
+            for r in self.results
+            if r.kind is CheckKind.FORMAL and r.verdict is TrustVerdict.FORMALLY_CHECKED
+        ]
         if formal_results:
-            if not self.binding.formal_statement or not self.binding.declaration or not self.binding.proof_artifact_hash:
+            if (
+                not self.binding.formal_statement
+                or not self.binding.declaration
+                or not self.binding.proof_artifact_hash
+            ):
                 errors.append("formal result lacks complete binding identity")
             for result in formal_results:
                 if result.artifact_hash != self.binding.proof_artifact_hash:
-                    errors.append(f"formal artifact hash mismatch for {result.target_backend}")
+                    errors.append(
+                        f"formal artifact hash mismatch for {result.target_backend}"
+                    )
                 if result.declaration != self.binding.declaration:
-                    errors.append(f"formal declaration mismatch for {result.target_backend}")
-            if self.formalization is not None and not self.formalization.approved_for_formal_check:
-                errors.append("formalization review is not approved for formal checking")
+                    errors.append(
+                        f"formal declaration mismatch for {result.target_backend}"
+                    )
+            if (
+                self.formalization is not None
+                and not self.formalization.approved_for_formal_check
+            ):
+                errors.append(
+                    "formalization review is not approved for formal checking"
+                )
         return errors
 
     @property
@@ -64,7 +93,9 @@ class ProofRecord:
             "schema": "mvpcx.proof-record/v1",
             "binding": self.binding.to_dict(),
             "plan": self.plan.to_dict(),
-            "formalization": self.formalization.to_dict() if self.formalization else None,
+            "formalization": self.formalization.to_dict()
+            if self.formalization
+            else None,
             "results": [
                 {
                     "target_backend": r.target_backend,
@@ -111,7 +142,10 @@ class ProofRecord:
     def seal(self, private_key_hex: str) -> dict[str, Any]:
         """Seal this proof record after validating its identity chain."""
         if not self.bindings_valid:
-            raise ValueError("cannot seal invalid proof record: " + "; ".join(self.validation_errors()))
+            raise ValueError(
+                "cannot seal invalid proof record: "
+                + "; ".join(self.validation_errors())
+            )
         return seal_payload(self.to_dict(), private_key_hex)
 
     @staticmethod

@@ -1,0 +1,16 @@
+Found 9 known vulnerabilities in 4 packages
+Name       Version ID              Fix Versions
+---------- ------- --------------- ------------
+pypdf      6.14.2  PYSEC-2026-3655 6.15.0
+pypdf      6.14.2  PYSEC-2026-3656 6.15.0
+setuptools 68.1.2  PYSEC-2025-49   78.1.1
+setuptools 68.1.2  PYSEC-2025-49   78.1.1
+setuptools 68.1.2  PYSEC-2026-1918 70.0.0
+setuptools 68.1.2  PYSEC-2026-3447 83.0.0
+setuptools 68.1.2  PYSEC-2026-3447 83.0.0
+wheel      0.42.0  CVE-2026-24049  0.46.2
+xhtml2pdf  0.2.14  PYSEC-2026-2056
+
+Name Skip Reason
+---- -------------------------------------------------------------------
+mvpc Dependency not found on PyPI and could not be audited: mvpc (8.0.0)

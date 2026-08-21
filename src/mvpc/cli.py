@@ -1,4 +1,5 @@
 """MVPC-X command line interface."""
+
 from __future__ import annotations
 
 import argparse
@@ -7,16 +8,19 @@ import os
 import sys
 from datetime import datetime, timezone
 
+from mvpc.hashing import hash_file, verify_witness_hash
 from mvpc.policy import PolicyLevel
-from mvpc.auditor import audit_directory
-from mvpc.report import format_terminal_report, format_json_report, format_markdown_report
-from mvpc.hashing import verify_witness_hash, hash_file
-from mvpc.witness import Witness
+from mvpc.preflight import format_preflight_terminal, run_preflight
 from mvpc.provenance import AIProvenance, SourceType
+from mvpc.report import (
+    format_json_report,
+    format_markdown_report,
+    format_terminal_report,
+)
+from mvpc.scaffold import list_templates, scaffold
+from mvpc.security import IntegritySession, compute_system_fingerprint
 from mvpc.trust import Finding, Severity
-from mvpc.preflight import run_preflight, format_preflight_terminal
-from mvpc.scaffold import scaffold, list_templates
-from mvpc.security import compute_system_fingerprint, IntegritySession
+from mvpc.witness import Witness
 
 
 def get_policy_level(policy_str: str) -> PolicyLevel:
@@ -103,14 +107,59 @@ def main(argv=None) -> None:
         "integrity",
         help="Show or verify MVPC-X system self-fingerprint (no artifact required)",
     )
-    int_p.add_argument(
-        "--json", action="store_true", help="Dump full fingerprint JSON"
-    )
+    int_p.add_argument("--json", action="store_true", help="Dump full fingerprint JSON")
     int_p.add_argument(
         "--verify-twice",
         action="store_true",
         help="Capture seal, sleep 0, re-check (sanity)",
     )
+
+    # --- nexus (source-agnostic Sovereign Nexus control plane) ---
+    nexus_p = sub.add_parser(
+        "nexus",
+        help="Sovereign Nexus source intake, verification, and permanent manifests",
+    )
+    nexus_sub = nexus_p.add_subparsers(dest="nexus_cmd", required=True)
+    nx_inspect = nexus_sub.add_parser(
+        "inspect",
+        help="Normalize a source and render Glass Box data without ledger writes",
+    )
+    nx_inspect.add_argument("path")
+    nx_inspect.add_argument(
+        "--plan",
+        default="",
+        help="Human intent or informal plan shown in the Glass Box left pane",
+    )
+    nx_inspect.add_argument("--json-out")
+    nx_inspect.add_argument("--markdown-out")
+    nx_verify = nexus_sub.add_parser(
+        "verify",
+        help="Run local Nexus verification and emit a linked JSON/Markdown manifest pair",
+    )
+    nx_verify.add_argument("path")
+    nx_verify.add_argument(
+        "--plan",
+        default="",
+        help="Human intent or informal plan shown in the Glass Box left pane",
+    )
+    nx_verify.add_argument("--ledger-dir")
+    nx_verify.add_argument(
+        "--strict-external-bin",
+        action="store_true",
+        help="Require a pinned MVPC_BIN when an external consumer binary is configured",
+    )
+    nx_verify.add_argument(
+        "--dependency-lock-sha256",
+        help="Expected SHA-256 for pyproject.toml + DEPENDENCIES.md parity",
+    )
+    nx_verify.add_argument("--json-out")
+    nx_verify.add_argument("--markdown-out")
+    nx_cas = nexus_sub.add_parser(
+        "cas-verify",
+        help="Validate a local polynomial certificate; never upgrades it to kernel proof",
+    )
+    nx_cas.add_argument("certificate")
+    nx_cas.add_argument("--json-out")
 
     # --- attest ---
     attest_p = sub.add_parser("attest", help="Attach human attestation to a witness")
@@ -131,6 +180,67 @@ def main(argv=None) -> None:
     v_w.add_argument("witness_file")
 
     args = parser.parse_args(argv)
+
+    if args.command == "nexus":
+        from mvpc.nexus import SovereignNexusRuntime, verify_certificate_file
+
+        def _write_nexus_outputs(data, markdown, json_out, markdown_out):
+            if json_out:
+                with open(json_out, "w", encoding="utf-8") as handle:
+                    json.dump(data, handle, indent=2, sort_keys=True)
+                    handle.write("\n")
+            if markdown_out:
+                with open(markdown_out, "w", encoding="utf-8") as handle:
+                    handle.write(markdown)
+
+        if args.nexus_cmd == "cas-verify":
+            try:
+                result = verify_certificate_file(args.certificate)
+            except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                print(f"Nexus CAS certificate error: {exc}", file=sys.stderr)
+                sys.exit(2)
+            data = result.to_dict()
+            if args.json_out:
+                with open(args.json_out, "w", encoding="utf-8") as handle:
+                    json.dump(data, handle, indent=2, sort_keys=True)
+                    handle.write("\n")
+            print(json.dumps(data, indent=2, sort_keys=True))
+            if not result.available:
+                sys.exit(2)
+            if not result.valid:
+                sys.exit(1)
+            return
+
+        runtime = SovereignNexusRuntime()
+        try:
+            if args.nexus_cmd == "inspect":
+                glassbox = runtime.inspect(args.path, natural_language_plan=args.plan)
+                _write_nexus_outputs(
+                    glassbox.to_dict(),
+                    glassbox.to_markdown(),
+                    args.json_out,
+                    args.markdown_out,
+                )
+                print(json.dumps(glassbox.to_dict(), indent=2, sort_keys=True))
+                return
+            result = runtime.verify(
+                args.path,
+                natural_language_plan=args.plan,
+                ledger_directory=args.ledger_dir,
+                strict_external_binary=args.strict_external_bin,
+                expected_dependency_digest=args.dependency_lock_sha256,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"Nexus verification error: {exc}", file=sys.stderr)
+            sys.exit(2)
+        data = result.to_dict()
+        _write_nexus_outputs(
+            data, result.glassbox.to_markdown(), args.json_out, args.markdown_out
+        )
+        print(json.dumps(data, indent=2, sort_keys=True))
+        if result.final_verdict.value in {"REJECTED", "CORRUPTED"}:
+            sys.exit(1)
+        return
 
     if args.command == "preflight":
         report = run_preflight(args.path, allow_symlinks=args.allow_symlinks)
@@ -187,12 +297,16 @@ def main(argv=None) -> None:
 
     if args.command == "audit":
         if args.preflight_first and not args.json:
-            print(format_preflight_terminal(run_preflight(args.path, allow_symlinks=args.allow_symlinks)))
+            print(
+                format_preflight_terminal(
+                    run_preflight(args.path, allow_symlinks=args.allow_symlinks)
+                )
+            )
             print()
 
         # Patch engine defaults via environment consumed in auditor — set on engine through audit_directory kwargs if supported
-        from mvpc.engine import VerificationEngine
         from mvpc.backends.registry import get_default_registry
+        from mvpc.engine import VerificationEngine
 
         # Prefer directory helper but inject engine settings by monkeypatching path:
         engine = VerificationEngine(
@@ -318,9 +432,7 @@ def main(argv=None) -> None:
                 attestation_state=data.get("attestation_state", "UNVERIFIED"),
                 remediation=data.get("remediation"),
                 human_review_obligations=data.get("human_review_obligations", []),
-                timestamp=data.get(
-                    "timestamp", datetime.now(timezone.utc).isoformat()
-                ),
+                timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat()),
                 human_attestations=data.get("human_attestations", []),
                 witness_hash=data.get("witness_hash", ""),
             )
@@ -344,8 +456,8 @@ def main(argv=None) -> None:
         return
 
     if args.command == "claim":
-        from mvpc.engine import VerificationEngine
         from mvpc.backends.registry import get_default_registry
+        from mvpc.engine import VerificationEngine
 
         engine = VerificationEngine(PolicyLevel.DEFAULT, get_default_registry())
         try:

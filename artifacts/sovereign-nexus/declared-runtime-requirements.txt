@@ -1,0 +1,6 @@
+pytest>=7.0
+pyyaml>=6.0
+pynacl>=1.5
+sympy>=1.12
+z3-solver>=4.12
+numpy>=1.24

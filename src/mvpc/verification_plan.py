@@ -1,10 +1,12 @@
 """Claim-centric verification plans and result aggregation."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any
 
 from .assurance import VerificationEvidence
 from .canonical import hash_canonical
@@ -52,15 +54,24 @@ class VerificationResult:
     declaration: str | None = None
     environment_id: str | None = None
     message: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
-    def to_evidence(self) -> VerificationEvidence:
+    def to_evidence(
+        self,
+        *,
+        claim_id: str = "",
+        proposition: str = "",
+    ) -> VerificationEvidence:
         return VerificationEvidence(
             source_id=f"{self.target_backend}:{self.kind.value}",
             kind=self.kind.value,
             verdict=self.verdict,
             foundation=self.foundation,
             independence_group=self.independent_group,
+            claim_id=claim_id,
+            proposition=proposition,
             environment_id=self.environment_id,
             artifact_hash=self.artifact_hash,
             declaration=self.declaration,
@@ -88,7 +99,7 @@ class VerificationPlan:
                 raise ValueError(f"duplicate verification target: {key}")
             seen.add(key)
 
-    def add(self, target: VerificationTarget) -> "VerificationPlan":
+    def add(self, target: VerificationTarget) -> VerificationPlan:
         self.targets.append(target)
         self._validate_targets()
         return self
@@ -150,7 +161,11 @@ class VerificationPlan:
             if key not in expected
         ]
         failures = [
-            {"backend": r.target_backend, "kind": r.kind.value, "verdict": r.verdict.value}
+            {
+                "backend": r.target_backend,
+                "kind": r.kind.value,
+                "verdict": r.verdict.value,
+            }
             for r in results
             if r.verdict in {TrustVerdict.REJECTED, TrustVerdict.UNSAFE_TO_VERIFY}
         ]
