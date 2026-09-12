@@ -1,0 +1,80 @@
+{
+  "schema_version": "res-nova-claim-ledger-v1",
+  "atlas_id": "synthetic-test-atlas-v1",
+  "document_provenance": {
+    "repo": "Mega-Therion/Res-Nova",
+    "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "path": "evidence/v1/claim-ledger.json"
+  },
+  "generation": {
+    "generator": "scripts/generate_evidence_atlas.py",
+    "generator_version": "1.0.0",
+    "source": "assurance/claims.json",
+    "source_commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "source_commit_date": "2026-09-01"
+  },
+  "claims": [
+    {
+      "claim_id": "SYN-01",
+      "epistemic_status": "derived",
+      "assumptions": ["Toy identity over the declared algebraic structure."],
+      "source_locators": [{"path": "toy/derivation.md", "locator": "section 1"}],
+      "evidence_references": [
+        {"ref_id": "SYN-01-01", "kind": "derivation", "path": "toy/Derivation.lean", "available": true}
+      ],
+      "falsifiability": {"test": ["toy check"], "scope": "toy scope", "current_result": "supported"},
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    {
+      "claim_id": "SYN-02",
+      "epistemic_status": "empirically_supported",
+      "source_locators": [{"path": "toy/data.csv", "locator": "rows 1-10"}],
+      "evidence_references": [
+        {"ref_id": "SYN-02-01", "kind": "observational_data", "path": "toy/data.csv", "available": true}
+      ],
+      "falsifiability": {"test": ["toy_fit.py"], "scope": "toy fit only, not a physical claim", "current_result": "supported"},
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    {
+      "claim_id": "SYN-03",
+      "epistemic_status": "conditional",
+      "assumptions": ["Adopts toy premise P without independent derivation."],
+      "source_locators": [{"path": "toy/conditional.md", "locator": "section 2"}],
+      "evidence_references": [
+        {"ref_id": "SYN-03-01", "kind": "derivation", "path": "toy/Conditional.lean", "available": true}
+      ],
+      "falsifiability": {"test": ["toy check"], "scope": "conditional on P", "current_result": "not_run"},
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    {
+      "claim_id": "SYN-04",
+      "epistemic_status": "proposal",
+      "source_locators": [{"path": "toy/proposal.md", "locator": "section 3"}],
+      "evidence_references": [],
+      "falsifiability": {"test": "No executable test currently identified.", "scope": "proposed only, not derived", "current_result": "not_run"},
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    {
+      "claim_id": "SYN-05",
+      "epistemic_status": "open",
+      "source_locators": [{"path": "toy/open.md", "locator": "section 4"}],
+      "evidence_references": [
+        {"ref_id": "SYN-05-01", "kind": "calculation", "path": "toy/open_calc.py", "available": true}
+      ],
+      "falsifiability": {"test": ["toy check"], "scope": "unresolved normalization question, not yet derived", "current_result": "not_run"},
+      "limitations": "unresolved normalization question, not yet derived",
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    },
+    {
+      "claim_id": "SYN-06",
+      "epistemic_status": "refuted",
+      "source_locators": [{"path": "toy/refuted.md", "locator": "section 5"}],
+      "evidence_references": [
+        {"ref_id": "SYN-06-01", "kind": "derivation", "path": "toy/Refuted.lean", "available": true}
+      ],
+      "falsifiability": {"test": ["toy check"], "scope": "the toy identity does not hold as originally stated", "current_result": "contradicted"},
+      "limitations": "retracted; retained here for audit trail",
+      "provenance": {"repository": "Mega-Therion/Res-Nova", "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+    }
+  ]
+}

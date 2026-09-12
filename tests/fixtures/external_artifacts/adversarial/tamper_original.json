@@ -1,0 +1,57 @@
+{
+  "schema_version": "4leibniz-formal-claims-catalog-v1",
+  "document_provenance": {
+    "repo": "Mega-Therion/4Leibniz",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "path": "formal-claims/catalog-v1.json"
+  },
+  "claims": [
+    {
+      "claim_id": "4L-001",
+      "module": "Toy.Arithmetic",
+      "declaration": "add_comm_toy",
+      "status": "proved",
+      "proof_source": {
+        "repo": "Mega-Therion/4Leibniz",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "Toy/Arithmetic.lean"
+      },
+      "verification": {
+        "lean_toolchain": "leanprover/lean4:v4.9.0",
+        "project_check": "passed",
+        "declaration_check": "passed",
+        "sorry_count": 0,
+        "axiom_dependencies": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "checked_at": "2026-09-01T00:00:00Z"
+      }
+    },
+    {
+      "claim_id": "4L-002",
+      "module": "Toy.OpenProblems",
+      "declaration": "collatz_toy_case",
+      "status": "open_problem",
+      "proof_source": {
+        "repo": "Mega-Therion/4Leibniz",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "Toy/OpenProblems.lean"
+      },
+      "verification": {}
+    },
+    {
+      "claim_id": "4L-003",
+      "module": "Toy.Informal",
+      "declaration": "informal_sketch_only",
+      "status": "informal",
+      "proof_source": {
+        "repo": "Mega-Therion/4Leibniz",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "path": "notes/informal_sketch.md"
+      },
+      "verification": {}
+    }
+  ]
+}

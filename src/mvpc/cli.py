@@ -179,6 +179,31 @@ def main(argv=None) -> None:
     v_w = wit_sub.add_parser("verify", help="Verify witness self-hash")
     v_w.add_argument("witness_file")
 
+    # --- verify (external evidence artifacts, issue #8) ---
+    verify_p = sub.add_parser(
+        "verify",
+        help="Verify a local claim/evidence artifact against a registered adapter",
+    )
+    verify_sub = verify_p.add_subparsers(dest="verify_cmd", required=True)
+    va_p = verify_sub.add_parser(
+        "artifact",
+        help="Verify a local 4Leibniz/Res-Nova artifact file (schema, provenance, gates, witness)",
+    )
+    va_p.add_argument("path", help="Local path to the artifact JSON file (never a URL)")
+    va_p.add_argument("--format", choices=["text", "json"], default="text")
+    va_p.add_argument(
+        "--output",
+        help="Directory to write the witness bundle into (default: alongside CWD, unique name)",
+    )
+    va_p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow overwriting an existing witness bundle file",
+    )
+    va_p.add_argument(
+        "--policy", help="Path to a JSON policy file (expected_repos, etc.)"
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "nexus":
@@ -467,6 +492,11 @@ def main(argv=None) -> None:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
         return
+
+    if args.command == "verify" and args.verify_cmd == "artifact":
+        from mvpc.external_artifacts.cli_support import run_verify_artifact
+
+        sys.exit(run_verify_artifact(args))
 
     if args.command == "witness" and args.witness_cmd == "verify":
         try:
