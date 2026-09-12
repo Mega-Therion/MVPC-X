@@ -1,167 +1,54 @@
-<div align="center">
+# MVPC-X
 
-# 🛡️ MVPC-X
-### Multi-Variant Proof-Chain & Sovereign Claim-Verification Infrastructure
-**Deterministic Multi-Prover Auditing, Cryptographic Witness Seals & Kernel Assurance**
+Sovereign claim-verification infrastructure. Turns claims into auditable evidence chains.
 
----
+![MVPC-X Artifact Verification Lifecycle](docs/visuals/witness-bundle-lifecycle.svg)
 
-[![CI](https://img.shields.io/badge/CI-Passing_(117_Tests)-00C781.svg?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Mega-Therion/MVPC-X/actions)
-[![Version](https://img.shields.io/badge/Version-v1.0.0-0052FF.svg?style=for-the-badge&logo=pypi&logoColor=white)](https://github.com/Mega-Therion/MVPC-X/releases/tag/v1.0.0)
-[![Epistemic Covenant](https://img.shields.io/badge/Epistemic_Covenant-Enforced-D4AF37.svg?style=for-the-badge)](COVENANT.md)
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](LICENSE)
+## System Role
 
-<br/>
+MVPC-X operates as an independent external auditor across the Chyren constellation. It validates artifact integrity, computes canonical content hashes, evaluates declared validation gates, and issues tamper-evident witness bundles.
 
-> *“AI proposes. Machines verify. Humans audit. Evidence persists.”*
+MVPC-X does **not** evaluate substantive truth:
+- It does not verify the truth of physical hypotheses in Res-Nova.
+- It does not replace Lean 4 compilation in 4Leibniz.
+- It does not own or modify the RYTT token grammar.
+- A verdict of `passed` certifies only that configured artifact gates and provenance checks succeeded fail-closed.
 
-[**Architecture 🏛️**](ARCHITECTURE.md) &nbsp;•&nbsp; [**The Epistemic Covenant 📜**](COVENANT.md) &nbsp;•&nbsp; [**Security Policy 🔒**](SECURITY.md) &nbsp;•&nbsp; [**Contributing 🤝**](CONTRIBUTING.md)
+## Active Workstreams
 
-</div>
+- **Issue #8**: External evidence artifacts v1 — fixture-backed verification adapters for 4Leibniz formal-claim catalogs and Res-Nova Evidence Atlas ledgers with deterministic witness bundles.
+- **Issue #7**: External audit and replay verification for RYTT v0.2.0 envelopes and conformance vectors (`conformance/vectors.json`).
 
----
-
-## ⚡ Overview
-
-**MVPC-X** is an open-source, high-assurance mechanical claim-verification framework. It bridges theoretical propositions, formal interactive theorem provers (Lean 4, Coq, Isabelle/HOL), symbolic CAS engines (SymPy/Z3), and empirical datasets into tamper-evident, cryptographically signed **Proof-Witness Chains**.
+## Architecture
 
 ```
-              ┌─────────────────────────────────────────────────────────┐
-              │           Unverified Claim / Theorem / Script           │
-              └────────────────────────────┬────────────────────────────┘
-                                           │
-                                           ▼
-              ┌─────────────────────────────────────────────────────────┐
-              │           MVPC-X Multi-Prover Intake Guard              │
-              │     Policy Engine • Sandbox Guard • TCB Isolator        │
-              └──────┬─────────────────────┬─────────────────────┬──────┘
-                     │                     │                     │
-      Lean 4 Kernel  ▼        SymPy / CAS  ▼      Empirical Hash ▼
-    ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-    │ Lean 4 / Mathlib │  │ Symbolic Calculus│  │ SHA-256 Dataset  │
-    │  #print axioms   │  │  Z3 SMT Solver   │  │ Residual Audits  │
-    └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
-             │                     │                     │
-             └─────────────────────┼─────────────────────┘
-                                   │
-                                   ▼
-              ┌─────────────────────────────────────────────────────────┐
-              │          Cryptographic Witness Bundle (.json)           │
-              │  SHA-256 State Fingerprint • Merkle Proof • Epistemic Seal│
-              └─────────────────────────────────────────────────────────┘
+Artifact Ingest ──► Schema Check ──► Canonicalization ──► Gate Evaluation ──► Witness Bundle
+ (JSON / Path)      (v1 Schemas)       (BLAKE3 Hash)       (Pass/Fail/Unavail)   (Signed Seal)
 ```
 
----
+1. **Ingest**: Consumes local versioned artifacts without silent network fetching.
+2. **Canonicalize**: Normalizes payload representation to produce deterministic hashes.
+3. **Gates**: Evaluates provenance, required locators, and verification records. Missing or unparseable fields fail closed.
+4. **Witness**: Packages gate results, verifier version, and input hash into a sealed, replayable bundle.
 
-## 🏛️ Verification Architecture
+## Cross-Repository Contracts
 
-### Multi-Prover Backends
-* **Formal Proof Kernels:** Native validation in Lean 4 (`lake env lean`), Coq (`coqc`), and Isabelle/HOL. Checks for missing proofs, `sorry` placeholders, and axiom leakage.
-* **Symbolic CAS Verification:** Python / SymPy / Z3 symbolic equivalence proofs, tensor contraction verification, and dimensional consistency checks.
-* **Empirical Data Audits:** Hashed dataset reproduction pipelines, bounding out-of-sample residuals, $\chi^2$ data-residual separations, and MAP regularization checks.
+- **4Leibniz**: Consumes `artifacts/v1/formal-claims.json`. Requires immutable commit SHA, module path, and Lean toolchain verification record for any `proved` claim.
+- **Res-Nova**: Consumes `evidence/v1/claim-ledger.json`. Enforces status-specific evidence rules for `derived` and `empirically_supported` entries.
+- **RYTT**: Audits conformance vectors and PUA stream round-trips via `integration/4leibniz_bridge.json`.
 
-### Verifier Anti-Tampering & Self-Fingerprint
-MVPC-X executes a three-phase system self-fingerprint (Before / Mid / After audit) to ensure zero host-state mutations, environment tampering, or cached-output substitution during verification runs.
-
----
-
-## 🚀 Quick Start
-
-### 1. Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/Mega-Therion/MVPC-X.git
-cd MVPC-X
+# Run test suite
+pytest
 
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install in editable mode with development dependencies
-pip install -e ".[all]"
+# Verify an artifact locally
+python -m mvpc.cli verify artifact <path-to-artifact.json>
 ```
 
-### 2. Verify Your First Formal Claim
+## Standards
 
-```bash
-# Verify system integrity & anti-tamper fingerprinting
-mvpc integrity --verify-twice
-
-# Preflight check a Lean 4 theorem file
-mvpc preflight path/to/Theorem.lean
-
-# Run a strict audit against the Sovereign Covenant policy
-mvpc audit path/to/Theorem.lean --policy strict
-
-# Generate a standalone witness bundle
-mvpc witness export path/to/Theorem.lean --out witness.json
-```
-
----
-
-## Sovereign Nexus Control Plane
-
-The **Sovereign Nexus** adds source-agnostic structural intake, PANI-neutral policy gates, local backend receipts, permanent linked manifests, and a Glass Box presentation contract. It is additive: existing `mvpc audit`, `mvpc preflight`, and `mvpc integrity` workflows remain unchanged.
-
-```bash
-# Create a workspace with human intent, formal source, CAS certificate, and linked ledger metadata
-mvpc scaffold nexus ./nexus-workspace
-
-# Non-executing preview: normalize source and render Glass Box data
-mvpc nexus inspect ./nexus-workspace/formal/Basic.lean --plan "$(cat ./nexus-workspace/intent.md)"
-
-# Local verification with pre/mid/post fingerprints and paired JSON/Markdown manifests
-mvpc nexus verify ./nexus-workspace/formal/Basic.lean \
-  --plan "$(cat ./nexus-workspace/intent.md)" \
-  --ledger-dir ./nexus-workspace/ledger/manifests
-
-# Exact polynomial-certificate check; this remains CAS evidence, not kernel proof
-mvpc nexus cas-verify ./nexus-workspace/cas/certificate.json
-```
-
-The Nexus preserves the distinction between proposal and proof. Natural-language and LaTeX material are normalized as `UNTRANSLATED`; a Green Glass Box state requires a qualifying native local backend receipt. Detailed activation, integrity constraints, and verdict rules are in [`docs/SOVEREIGN_NEXUS.md`](docs/SOVEREIGN_NEXUS.md).
-
----
-
-## 🔬 The Epistemic Taxonomy
-
-All audited claims are tagged with their exact mechanical epistemic classification:
-
-$$\begin{aligned}
-\mathbf{[P]} & \quad \textbf{Proved / Kernel Verified:} \text{ Verified by a mechanical proof kernel (Lean 4, Coq) with audited axioms.} \\
-\mathbf{[D]} & \quad \textbf{Direct Empirical / Computed:} \text{ Evaluated from raw, cryptographically hashed datasets via reproducible code.} \\
-\mathbf{[C]} & \quad \textbf{Cited Literature:} \text{ Authentic peer-reviewed external baselines.} \\
-\mathbf{[O]} & \quad \textbf{Open Problem / Conjectured Boundary:} \text{ Phenomenological bridge hypotheses quarantined from proof claims.}
-\end{aligned}$$
-
----
-
-## 📂 Repository Layout
-
-```
-MVPC-X/
-├── src/mvpc/
-│   ├── engine.py              # Core multi-prover orchestration engine
-│   ├── policy.py              # Policy manifests (strict, default, permissive)
-│   ├── witness.py             # Cryptographic witness generation & Merkle trees
-│   ├── backends/              # Lean 4, Coq, Isabelle, SymPy, Python backends
-│   ├── traceability.py        # Provenance, lineage tracking & git attribution
-│   └── cli.py                 # Command-line interface
-├── tests/                     # 117 unit and integration tests (100% pass rate)
-├── docs/                      # Specification, guidelines, and formal policies
-├── ARCHITECTURE.md            # In-depth technical architecture document
-├── COVENANT.md                # Sovereign Epistemic Covenant definition
-├── pyproject.toml             # Python build and package manifest
-└── LICENSE                    # Apache-2.0 License
-```
-
----
-
-<div align="center">
-
-**MVPC-X Verification Engine**  
-*Turning theoretical claims into auditable cryptographic evidence.*
-
-</div>
+- **Fail-closed**: Any unknown, skipped, or unparseable check is marked `unavailable` or `failed`, never `passed`.
+- **Standalone**: No runtime dependency on upstream compiler toolchains.
+- **No status inflation**: Upstream statuses (`conditional`, `proposal`, `open`, `refuted`) are preserved verbatim.
