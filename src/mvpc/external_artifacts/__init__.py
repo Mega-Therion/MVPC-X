@@ -1,9 +1,9 @@
-"""External evidence artifact verification (MVPC-X issue #8).
+"""External evidence artifact verification (MVPC-X issues #7 and #8).
 
 This subpackage verifies *external* claim/evidence artifacts produced by
 other repositories (4Leibniz formal-claims catalogs, Res-Nova Evidence
-Atlas / claim ledgers) against local, versioned schema/provenance/gate
-rules.
+Atlas / claim ledgers, and RYTT envelope/conformance-run/ZIP-bundle
+artifacts) against local, versioned schema/provenance/gate rules.
 
 Scope (read this before touching anything in this package):
 
@@ -18,7 +18,13 @@ MVPC-X, through this module, verifies:
 MVPC-X, through this module, never becomes the source of truth for:
   - Lean theorem truth (no Lean toolchain is ever invoked here);
   - scientific/physical truth of any claim;
-  - RYTT grammar (see issue #7 / mvpc.nexus for that surface);
+  - RYTT's own grammar/compiler (this module never forks or re-executes
+    RYTT's encode/decode; it verifies declared envelope/bundle/replay
+    fields for internal consistency only — see rytt_adapter.py,
+    rytt_conformance_adapter.py, rytt_bundle_adapter.py);
+  - RYTT's Supabase tables (rytt_traces, rytt_conformance_runs,
+    rytt_benchmark_metrics) — explicitly deferred, no network/DB access
+    of any kind exists in this package; see docs/EXTERNAL_ARTIFACTS.md;
   - Res-Nova epistemic interpretation;
   - AEON governance policy.
 
@@ -50,6 +56,15 @@ from mvpc.external_artifacts import (
 )  # noqa: F401,E402
 from mvpc.external_artifacts import (
     resnova_adapter as _resnova_adapter,
+)  # noqa: F401,E402
+from mvpc.external_artifacts import (
+    rytt_adapter as _rytt_adapter,
+)  # noqa: F401,E402
+from mvpc.external_artifacts import (
+    rytt_bundle_adapter as _rytt_bundle_adapter,
+)  # noqa: F401,E402
+from mvpc.external_artifacts import (
+    rytt_conformance_adapter as _rytt_conformance_adapter,
 )  # noqa: F401,E402
 
 __all__ = [

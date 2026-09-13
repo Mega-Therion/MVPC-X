@@ -70,6 +70,7 @@ class AdapterPolicy:
         expected_repos: dict[str, str] | None = None,
         require_claim_provenance_match: bool = True,
         policy_version: str = "external-artifacts-v1",
+        expected_vocabulary_sha256: dict[str, str] | None = None,
     ) -> None:
         # artifact_type -> expected repo (e.g. "4leibniz-formal-claims-catalog"
         # -> "Mega-Therion/4Leibniz"). None/absent means "accept any
@@ -77,6 +78,12 @@ class AdapterPolicy:
         self.expected_repos = expected_repos or {}
         self.require_claim_provenance_match = require_claim_provenance_match
         self.policy_version = policy_version
+        # artifact_type -> expected RYTT spec/vocabulary.json SHA-256 hex
+        # digest. A RYTT envelope/bundle's declared vocabulary_sha256 can
+        # only be PASSED if it matches a value configured here; with no
+        # configured expectation the check is genuinely UNCHECKED
+        # (GateStatus.UNAVAILABLE), never a silent pass (issue #7 rule 4).
+        self.expected_vocabulary_sha256 = expected_vocabulary_sha256 or {}
 
 
 _REGISTRY: dict[str, ArtifactAdapter] = {}
