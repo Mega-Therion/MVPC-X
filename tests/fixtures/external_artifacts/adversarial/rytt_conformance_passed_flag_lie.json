@@ -1,0 +1,81 @@
+{
+  "schema_version": "rytt-conformance-run-v1",
+  "document_provenance": {
+    "repo": "Mega-Therion/RYTT-Sovereign-Semiotics",
+    "commit": "aaf77db4666c62c57878e7c7a5f11dbd1754cf5b",
+    "path": "conformance/vectors.json"
+  },
+  "spec_version": "0.1",
+  "vectors_reference": {
+    "repo": "Mega-Therion/RYTT-Sovereign-Semiotics",
+    "commit": "aaf77db4666c62c57878e7c7a5f11dbd1754cf5b",
+    "path": "conformance/vectors.json",
+    "local_copy_path": "/home/mega/MVPC-X/.claude/worktrees/agent-ab96f30bbfd8e2d81/tests/fixtures/external_artifacts/rytt_vectors_reference.json",
+    "format": "rytt-conformance",
+    "version": "0.1",
+    "sha256": "fdef72a14748ba9d9c7c4cd2b881a540a139e32cf2a40645d13403c7f91b6907"
+  },
+  "results": [
+    {
+      "id": "empty",
+      "source": "",
+      "encoded_display": "",
+      "decoded": "",
+      "token_count": 0,
+      "passed": true
+    },
+    {
+      "id": "ascii_mixed_case",
+      "source": "Tyger Tyger, burning bright.",
+      "encoded_display": "·,··.",
+      "decoded": "Tyger Tyger, burning bright.",
+      "token_count": 24,
+      "passed": true
+    },
+    {
+      "id": "chord_rich",
+      "source": "TION tion RYTT rytt transformation intentional",
+      "encoded_display": "·····",
+      "decoded": "TION tion RYTT rytt transformation intentional",
+      "token_count": 26,
+      "passed": false
+    },
+    {
+      "id": "whitespace",
+      "source": "line one\nline two\tline three",
+      "encoded_display": "·\n·\t·",
+      "decoded": "line one\nline two\tline three",
+      "token_count": 22,
+      "passed": true
+    },
+    {
+      "id": "symbols",
+      "source": "42% — [RYTT] {returns}!",
+      "encoded_display": "42%·—·[]·{}!",
+      "decoded": "42% — [RYTT] {returns}!",
+      "token_count": 19,
+      "passed": true
+    },
+    {
+      "id": "unicode_passthrough",
+      "source": "naïve café — 東京 — Δ",
+      "encoded_display": "ï·é·—·東京·—·Δ",
+      "decoded": "naïve café — 東京 — Δ",
+      "token_count": 19,
+      "passed": true
+    },
+    {
+      "id": "all_ascii",
+      "source": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "encoded_display": "·",
+      "decoded": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "token_count": 51,
+      "passed": true
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 6,
+    "failed": 1
+  }
+}

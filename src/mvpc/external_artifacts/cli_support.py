@@ -19,7 +19,9 @@ from mvpc.external_artifacts.models import GateStatus
 from mvpc.external_artifacts.registry import AdapterPolicy, UnsupportedArtifactError
 from mvpc.external_artifacts.verify import (
     MalformedArtifactError,
+    ZipArtifactError,
     verify_artifact_file,
+    verify_zip_bundle_file,
 )
 
 
@@ -74,8 +76,18 @@ def _render_text(verification) -> str:
 def run_verify_artifact(args) -> int:
     policy = _load_policy(getattr(args, "policy", None))
 
+    # Artifact-type auto-detection (issue #7): a RYTT CLI verified
+    # artifact is a ZIP bundle, not a JSON document, so it cannot go
+    # through load_artifact_json's json.loads() path at all. Detected
+    # purely by file extension — never by sniffing magic bytes against
+    # untrusted input before any size/shape check has run.
+    is_zip = args.path.lower().endswith(".zip")
+
     try:
-        verification = verify_artifact_file(args.path, policy=policy)
+        if is_zip:
+            verification = verify_zip_bundle_file(args.path, policy=policy)
+        else:
+            verification = verify_artifact_file(args.path, policy=policy)
     except FileNotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -83,6 +95,9 @@ def run_verify_artifact(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except MalformedArtifactError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except ZipArtifactError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

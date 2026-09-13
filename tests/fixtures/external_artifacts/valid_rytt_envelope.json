@@ -1,0 +1,268 @@
+{
+  "format": "rytt",
+  "format_version": "0.1",
+  "spec_version": "0.1",
+  "vocabulary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_encoding": "utf-8",
+  "source_text": "Tyger Tyger, burning bright.",
+  "encoded_display": "·,··.",
+  "tokens": [
+    {
+      "index": 0,
+      "source": "T",
+      "kind": "glyph",
+      "plane": "elevated",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 1,
+      "source": "y",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 2,
+      "source": "g",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 3,
+      "source": "er",
+      "kind": "chord",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": true,
+      "passthrough": false
+    },
+    {
+      "index": 4,
+      "source": " ",
+      "kind": "passthrough",
+      "plane": null,
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": true
+    },
+    {
+      "index": 5,
+      "source": "T",
+      "kind": "glyph",
+      "plane": "elevated",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 6,
+      "source": "y",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 7,
+      "source": "g",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 8,
+      "source": "er",
+      "kind": "chord",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": true,
+      "passthrough": false
+    },
+    {
+      "index": 9,
+      "source": ",",
+      "kind": "passthrough",
+      "plane": null,
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": true
+    },
+    {
+      "index": 10,
+      "source": " ",
+      "kind": "passthrough",
+      "plane": null,
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": true
+    },
+    {
+      "index": 11,
+      "source": "b",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 12,
+      "source": "u",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 13,
+      "source": "r",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 14,
+      "source": "n",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 15,
+      "source": "ing",
+      "kind": "chord",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": true,
+      "passthrough": false
+    },
+    {
+      "index": 16,
+      "source": " ",
+      "kind": "passthrough",
+      "plane": null,
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": true
+    },
+    {
+      "index": 17,
+      "source": "b",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 18,
+      "source": "r",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 19,
+      "source": "i",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 20,
+      "source": "g",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 21,
+      "source": "h",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 22,
+      "source": "t",
+      "kind": "glyph",
+      "plane": "ground",
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": false
+    },
+    {
+      "index": 23,
+      "source": ".",
+      "kind": "passthrough",
+      "plane": null,
+      "codepoint": null,
+      "codepoint_int": null,
+      "is_chord": false,
+      "passthrough": true
+    }
+  ],
+  "metrics": {
+    "source_characters": 28,
+    "rytt_tokens": 24,
+    "source_utf8_bytes": 28,
+    "encoded_utf8_bytes": 65,
+    "chord_tokens": 3,
+    "character_reduction_pct": 14.29
+  },
+  "verification": {
+    "round_trip_exact": true,
+    "decoded_text": "Tyger Tyger, burning bright."
+  },
+  "document_provenance": {
+    "repo": "Mega-Therion/RYTT-Sovereign-Semiotics",
+    "commit": "aaf77db4666c62c57878e7c7a5f11dbd1754cf5b",
+    "path": "conformance-run-envelope-fixture"
+  }
+}

@@ -13,6 +13,7 @@ than the explicit --output path the caller supplies.
 from __future__ import annotations
 
 import json
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -59,6 +60,46 @@ class MalformedArtifactError(ValueError):
     """The input file is not valid JSON, or is not a JSON object."""
 
 
+def _resolve_schema_identity(raw: dict[str, Any]) -> Any:
+    """Most artifacts (4Leibniz, Res-Nova) declare a single top-level
+    "schema_version" string used verbatim as the registry dispatch key.
+    RYTT's own envelope/interchange format (issue #7) has no such field
+    at all — it declares identity via a ("format", "format_version",
+    "spec_version") triple instead (see src/rytt/interchange.py:
+    build_envelope(), read directly from the RYTT repo). This function
+    synthesizes the equivalent dispatch key for that shape, WITHOUT ever
+    widening what an existing "schema_version"-bearing artifact resolves
+    to (that branch is checked first and returned unchanged).
+
+    Version-pinned on purpose: only the exact (format_version,
+    spec_version) pair this adapter was written against resolves to a
+    known identity. A future RYTT format/spec bump must fall through to
+    UnsupportedArtifactError, never be silently graded by v1 rules — see
+    rytt_adapter.SUPPORTED_FORMAT_VERSION /
+    SUPPORTED_SPEC_VERSION and rytt_conformance_adapter.
+    SUPPORTED_SPEC_VERSION."""
+    schema_identity = raw.get("schema_version")
+    if isinstance(schema_identity, str) and schema_identity:
+        return schema_identity
+
+    if (
+        raw.get("format") == "rytt"
+        and raw.get("format_version") == "0.1"
+        and raw.get("spec_version") == "0.1"
+    ):
+        return "rytt-envelope-v1"
+
+    return schema_identity
+
+
+class ZipArtifactError(ValueError):
+    """The input path is not a readable, well-formed ZIP archive, or its
+    member listing violates a ZIP-safety invariant (path traversal,
+    duplicate member names). Distinct from MalformedArtifactError so
+    callers can tell "not JSON" apart from "not a valid ZIP", but the CLI
+    treats both as the same exit-code-2 class of input error."""
+
+
 @dataclass
 class ExternalArtifactVerification:
     result: ArtifactVerificationResult
@@ -103,10 +144,22 @@ def verify_artifact_file(
     policy = policy or AdapterPolicy()
     raw = load_artifact_json(path)
 
-    schema_identity = raw.get("schema_version")
+    schema_identity = _resolve_schema_identity(raw)
     if not schema_identity or not isinstance(schema_identity, str):
         raise UnsupportedArtifactError(schema_identity)
 
+    return _verify_resolved(schema_identity, raw, path, policy)
+
+
+def _verify_resolved(
+    schema_identity: str,
+    raw: dict[str, Any],
+    path: str,
+    policy: AdapterPolicy,
+) -> ExternalArtifactVerification:
+    """Shared tail end of verification once a schema identity and a raw
+    dict (parsed JSON, or a synthetic dict built from a ZIP's members —
+    see verify_zip_bundle_file) are both in hand."""
     adapter = get_adapter(schema_identity)  # raises UnsupportedArtifactError if unknown
     parsed = adapter.parse(raw)
     gates = adapter.run_gates(parsed, policy=policy)
@@ -129,6 +182,73 @@ def verify_artifact_file(
 
     bundle = _build_witness_bundle(result, raw)
     return ExternalArtifactVerification(result=result, bundle=bundle, raw=raw)
+
+
+_ZIP_JSON_MEMBERS = ("artifact.json", "trace.json", "metrics.json", "verification.json")
+_ZIP_TEXT_MEMBERS = ("source.txt", "encoded.rytt")
+
+
+def load_zip_bundle(path: str) -> dict[str, Any]:
+    """Read a RYTT CLI ZIP artifact into the synthetic raw dict shape
+    rytt_bundle_adapter.RyttZipBundleAdapter expects: {"_member_names":
+    [...], "_members": {name: parsed_json_or_text_or_None}}. Never writes
+    to disk, never re-zips, never trusts a member name outside the
+    archive root (path traversal guard) or a duplicate member name
+    (each is itself a tamper vector for a ZIP-based artifact)."""
+    p = Path(path)
+    if not p.is_file():
+        raise FileNotFoundError(f"artifact path is not a local file: {path}")
+    try:
+        with zipfile.ZipFile(p, "r") as archive:
+            infos = archive.infolist()
+            names = [info.filename for info in infos]
+            for name in names:
+                normalized = Path(name)
+                if normalized.is_absolute() or ".." in normalized.parts:
+                    raise ZipArtifactError(
+                        f"ZIP member name {name!r} is unsafe (absolute path or "
+                        "'..' traversal component); refusing to read this bundle"
+                    )
+            members: dict[str, Any] = {}
+            for name in set(names):
+                # zipfile.read() on a duplicate-name archive returns the
+                # LAST entry; report every distinct name once, but the
+                # duplicate itself is still flagged by the adapter's
+                # required_members gate via _member_names below.
+                raw_bytes = archive.read(name)
+                if name in _ZIP_JSON_MEMBERS:
+                    try:
+                        members[name] = json.loads(raw_bytes.decode("utf-8"))
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        members[name] = None
+                elif name in _ZIP_TEXT_MEMBERS:
+                    try:
+                        members[name] = raw_bytes.decode("utf-8")
+                    except UnicodeDecodeError:
+                        members[name] = None
+                # Unrecognized members (e.g. README.md) are intentionally
+                # not parsed/stored; the adapter never checks them.
+    except zipfile.BadZipFile as exc:
+        raise ZipArtifactError(f"{path} is not a valid ZIP archive: {exc}") from exc
+
+    return {"_member_names": names, "_members": members}
+
+
+def verify_zip_bundle_file(
+    path: str,
+    *,
+    policy: AdapterPolicy | None = None,
+) -> ExternalArtifactVerification:
+    """Local-file-only entry point for a RYTT CLI ZIP artifact (issue #7
+    scope item 3). Never fetches a URL, never re-runs RYTT's compiler.
+    Dispatches through the same adapter registry as
+    verify_artifact_file, using the fixed identity "rytt-zip-bundle-v1"
+    (there is only one bundle-shape adapter registered; a future bundle
+    format revision would need its own identity and its own detection
+    rule here, mirroring _resolve_schema_identity)."""
+    policy = policy or AdapterPolicy()
+    raw = load_zip_bundle(path)
+    return _verify_resolved("rytt-zip-bundle-v1", raw, path, policy)
 
 
 def _build_witness_bundle(
