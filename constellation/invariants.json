@@ -1,0 +1,17 @@
+{
+  "repo": "mvpc-x",
+  "schema_version": "1.0.0",
+  "invariants": [
+    {
+      "id": "suite",
+      "cmd": "PYTHONPATH=src python3 -m pytest -q -p no:cacheprovider",
+      "required": true,
+      "timeout": 1800,
+      "why": "MVPC-X is the constellation's independent auditor; if its own suite is not green, no verdict it issues about another repo is worth anything"
+    }
+  ],
+  "open": [
+    "Issue #12: the runtime reports REJECTED/red when the native tool merely fails to complete, so a TRUE theorem is recorded as refuted by a toolchain gap. tests/nexus/test_nexus_runtime.py::test_formal_source_without_native_tool_is_never_green fails locally and passes on CI -- an environment-sensitive verdict in a verification tool. Until that is resolved, this suite is environment-sensitive and a green receipt here means 'green on this machine'.",
+    "mvpc-x-2 (offline self-contained witness bundles), -3 (replay/audit for silent status inflation), -5 (machine-checkable threat model) and -6 (zero FP/FN on an adversarial suite) are not attempted."
+  ]
+}
