@@ -121,3 +121,23 @@ def test_inspect_never_runs_native_backend(tmp_path: Path) -> None:
     assert document.backend_receipt["native_completed"] is False
     assert document.backend_receipt["static_completed"] is False
     assert "never launches it" in document.backend_receipt["notes"][0]
+
+
+def test_axiom_free_theorem_counts_as_a_kernel_audit(tmp_path: Path) -> None:
+    """Lean prints "'d' does not depend on any axioms" for an axiom-free theorem.
+
+    That line used to go unparsed, so a clean theorem was reported as
+    LEAN_KERNEL_NEVER_RAN and rejected. With Lean on PATH it must now verify;
+    without Lean the runtime must stay non-green (orange).
+    """
+    path = tmp_path / "identity.lean"
+    path.write_text("theorem identity (x : Nat) : x = x := by rfl\n", encoding="utf-8")
+    result = SovereignNexusRuntime().verify(
+        path, ledger_directory=tmp_path / "manifests"
+    )
+    assert "LEAN_KERNEL_NEVER_RAN" not in result.backend.blockers
+    if result.backend.native_available:
+        assert result.backend.native_completed is True
+        assert result.glassbox.traffic_light.value == "green"
+    else:
+        assert result.glassbox.traffic_light.value == "orange"

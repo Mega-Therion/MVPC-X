@@ -618,6 +618,14 @@ class LeanBackend(VerificationBackend):
 
             kernel_hit = False
             for d in decls:
+                # An axiom-free declaration prints "'d' does not depend on any
+                # axioms" (no bracket list). That is a successful kernel audit
+                # with an empty axiom set, not a missing one.
+                if re.search(
+                    rf"'?{re.escape(d)}'? does not depend on any axioms", output
+                ):
+                    kernel_hit = True
+                    continue
                 m = re.search(
                     rf"'{re.escape(d)}' depends on axioms:\s*\[([^\]]*)\]",
                     output,
