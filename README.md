@@ -1,6 +1,6 @@
 # MVPC-X
 
-Sovereign claim-verification infrastructure. Turns claims into auditable evidence chains.
+Claim-verification infrastructure. Turns claims into auditable evidence chains.
 
 ![MVPC-X Artifact Verification Lifecycle](docs/visuals/witness-bundle-lifecycle.svg)
 
@@ -52,3 +52,7 @@ python -m mvpc.cli verify artifact <path-to-artifact.json>
 - **Fail-closed**: Any unknown, skipped, or unparseable check is marked `unavailable` or `failed`, never `passed`.
 - **Standalone**: No runtime dependency on upstream compiler toolchains.
 - **No status inflation**: Upstream statuses (`conditional`, `proposal`, `open`, `refuted`) are preserved verbatim.
+
+## How this was built
+
+R.W. Yett directs the work. Much of the code and prose was written with AI coding assistants; those commits carry `Co-Authored-By` trailers. A `passed` verdict is a gate result from this repository. It is not a model judgment.
