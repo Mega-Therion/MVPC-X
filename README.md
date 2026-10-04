@@ -16,8 +16,8 @@ MVPC-X does **not** evaluate substantive truth:
 
 ## Active Workstreams
 
-- **Issue #8**: External evidence artifacts v1 — fixture-backed verification adapters for 4Leibniz formal-claim catalogs and Res-Nova Evidence Atlas ledgers with deterministic witness bundles.
-- **Issue #7**: External audit and replay verification for RYTT v0.2.0 envelopes and conformance vectors (`conformance/vectors.json`).
+- **On main**: fixture-backed adapters for 4Leibniz formal-claim catalogs and Res-Nova evidence ledgers, merged in #10. A missing native checker does not turn a theorem red. That case stays conditional, and a `sorry` stays rejected.
+- **Not on main**: RYTT envelope replay. The branch for issue #7 fails its own tests, including a fixture path that points at a machine-local worktree, so it is closed rather than merged.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ Artifact Ingest ──► Schema Check ──► Canonicalization ──► Gate
 
 - **4Leibniz**: Consumes `artifacts/v1/formal-claims.json`. Requires immutable commit SHA, module path, and Lean toolchain verification record for any `proved` claim.
 - **Res-Nova**: Consumes `evidence/v1/claim-ledger.json`. Enforces status-specific evidence rules for `derived` and `empirically_supported` entries.
-- **RYTT**: Audits conformance vectors and PUA stream round-trips via `integration/4leibniz_bridge.json`.
+- **RYTT**: This repo does not fork the grammar. Envelope replay is not on main.
 
 ## Quick Start
 
