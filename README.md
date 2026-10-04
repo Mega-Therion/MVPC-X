@@ -40,7 +40,8 @@ Artifact Ingest ──► Schema Check ──► Canonicalization ──► Gate
 ## Quick Start
 
 ```bash
-# Run test suite
+# The package lives under src/. Install it, then test.
+pip install -e '.[test]'
 pytest
 
 # Verify an artifact locally
