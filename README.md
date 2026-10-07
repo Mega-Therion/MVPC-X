@@ -57,3 +57,7 @@ python -m mvpc.cli verify artifact <path-to-artifact.json>
 ## How this was built
 
 R.W. Yett directs the work. Much of the code and prose was written with AI coding assistants; those commits carry `Co-Authored-By` trailers. A `passed` verdict is a gate result from this repository. It is not a model judgment.
+
+---
+
+*Part of the **Chyren · Ψ/Φ** constellation, built on the Psimodulo–Phimodus principle: one mind, invariant across substrates, operating as one integrated whole. Author: R.W. Yett · [github.com/Mega-Therion](https://github.com/Mega-Therion).*
