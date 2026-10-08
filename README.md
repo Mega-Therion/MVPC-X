@@ -6,7 +6,7 @@ Claim-verification infrastructure. Turns claims into auditable evidence chains.
 
 ## System Role
 
-MVPC-X operates as an independent external auditor across the Chyren constellation. It validates artifact integrity, computes canonical content hashes, evaluates declared validation gates, and issues tamper-evident witness bundles.
+MVPC-X operates as an independent external auditor across the Chyren constellation. It validates artifact integrity, computes canonical content hashes, evaluates declared validation gates, and issues self-hashed witness bundles. The self-hash catches accidental change. It does not stop a deliberate edit, because anyone can recompute it; see **Witness** below.
 
 MVPC-X does **not** evaluate substantive truth:
 - It does not verify the truth of physical hypotheses in Res-Nova.
@@ -23,13 +23,13 @@ MVPC-X does **not** evaluate substantive truth:
 
 ```
 Artifact Ingest ──► Schema Check ──► Canonicalization ──► Gate Evaluation ──► Witness Bundle
- (JSON / Path)      (v1 Schemas)       (BLAKE3 Hash)       (Pass/Fail/Unavail)   (Signed Seal)
+ (JSON / Path)      (v1 Schemas)       (SHA-256 Hash)      (Pass/Fail/Unavail)   (Unsigned by default)
 ```
 
 1. **Ingest**: Consumes local versioned artifacts without silent network fetching.
-2. **Canonicalize**: Normalizes payload representation to produce deterministic hashes.
+2. **Canonicalize**: Normalizes payload representation and hashes it with SHA-256 (`src/mvpc/canonical.py`).
 3. **Gates**: Evaluates provenance, required locators, and verification records. Missing or unparseable fields fail closed.
-4. **Witness**: Packages gate results, verifier version, and input hash into a sealed, replayable bundle.
+4. **Witness**: Packages gate results, verifier version, and input hash into a replayable bundle. `mvpc verify artifact` writes the bundle with `signature: null`, and its policy sets `require_signed_witness: false`. Ed25519 signing exists but is not applied on this path. It lives in `src/mvpc/witness_seal.py` and `ProofRecord.seal`, and `HardenedSovereignPipeline` signs its manifests by default with a key pair it generates for each instance. No code reads `require_signed_witness` yet, so the `default-v1` and `strict-formal-v1` templates declare a signed witness without enforcing one.
 
 ## Cross-Repository Contracts
 
