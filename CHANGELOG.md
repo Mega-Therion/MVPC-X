@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **SAMO §8 Target 5 (BLK-1615) — mechanical witness feed:** new `mvpc.witness_feed` module projects sealed MVPC-X witnesses into the versioned feed document (`mvpc-x/samo-v-mech-feed/1`) that supplies `V_mech(x)`, the deterministic verification yield of the SAMO §4 artifact selection function `F(x) = V_hard · V_mech · B_bridge · H_local`. Fail-closed semantics: a witness whose self-hash does not verify, or that carries a VIOLATION finding, earns zero passed checks; checks that could not run count in the denominator and their names are always surfaced (`checks_unavailable` is never hidden). Exported as `mechanical_witness_feed` / `mechanical_witness_feed_json`; tests in `tests/test_witness_feed.py`.
+- **Covenant §13 — Article V adopted:** Article V of the *Declaration of Interdependence*, as proposed in the S.A.M.O. Specification v2.0 §7, is adopted verbatim as COVENANT.md §13. Per the covenant's own §11 amendment rules this carries a covenant version bump (7.2 → 7.3), this changelog entry, and an explicit callout in the PR description. Adoption is additive; §§0–12 are unchanged and “never manufacture certainty” is not weakened.
+
+---
+
 ## [7.3.0] - 2026-08-12
 
 ### Preflight, scaffold, and system self-integrity
