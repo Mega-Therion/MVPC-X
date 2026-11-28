@@ -16,6 +16,7 @@ from mvpc.witness_seal import generate_signing_keypair, seal_payload, verify_sea
 from mvpc.provenance import Provenance, SourceType, AIProvenance
 from mvpc.policy import PolicyLevel, Policy, get_policy, evaluate_attestation
 from mvpc.witness import Witness, generate_witness
+from mvpc.witness_feed import mechanical_witness_feed, mechanical_witness_feed_json
 from mvpc.explanations import get_explanation
 from mvpc.security import compute_system_fingerprint, IntegritySession
 from mvpc.preflight import run_preflight
@@ -29,5 +30,6 @@ __all__ = [
     "ProofRecord", "generate_signing_keypair", "seal_payload", "verify_sealed_payload", "Finding",
     "Severity", "CoverageReport", "Provenance", "SourceType", "AIProvenance", "PolicyLevel",
     "Policy", "get_policy", "evaluate_attestation", "Witness", "generate_witness", "get_explanation",
+    "mechanical_witness_feed", "mechanical_witness_feed_json",
     "compute_system_fingerprint", "IntegritySession", "run_preflight",
 ]

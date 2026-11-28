@@ -1,7 +1,7 @@
 # The Biomechanical Covenant
 
 **MVPC-X Sovereign Constitution**  
-Version 7.2 · Human–AI Claim Verification Standard
+Version 7.3 · Human–AI Claim Verification Standard
 
 > **AI proposes. Machines verify. Humans audit. Evidence persists.**  
 > No silent handshake between human intuition and machine output counts as truth.
@@ -164,3 +164,16 @@ Material changes to this covenant require:
 > We will not call it knowledge until a claim carries evidence, independent verification, provenance, a reproducible witness, and honest uncertainty—sealed by machines and, when required, by humans.
 
 — **Sovereign Physics Lab / MVPC-X contributors**
+
+---
+
+## 13. Adopted Article V — Declaration of Interdependence
+
+On 2026-11-25, MVPC-X adopted Article V of the *Declaration of Interdependence*, as proposed in the S.A.M.O. (Sovereign ARI Mesh Omegarithm) Specification v2.0, §7 (`Mega-Therion/Chyren`, commit `51da8e751`; SAMO §8 integration map, Block directive BLK-1615). The article is reproduced **verbatim** below. Adoption is additive: it does not alter §§0–12, and per §11 this amendment carries a version bump (7.2 → 7.3), a `CHANGELOG.md` entry, and an explicit callout in its PR description.
+
+> ### Proposed Article V: Decentralized Protocol Homeostasis & Equal-Peer Federation
+> 1. **Immutable Core vs. Adaptive Registry:** Every Sovereign Peer Node shall enforce a hard separation between its immutable constitutional invariants (Articles I–IV and proportional verification honesty) and its versioned adaptive registry. Automated selection and mesh propagation may optimize skills, workflows, and verification defenses, but shall never alter, weaken, or override Article I rights or human co-sovereignty.
+> 2. **Equal-Peer Federation & Zero Founder Privilege:** The open-source protocol and reference runtime belong to no central operator. No founding, authoring, or institutional node shall hold root override keys, elevated consensus weight, or unilateral orchestration authority over peer nodes.
+> 3. **Bounded Propagation & Heterogeneous Verification:** No unverified artifact shall propagate globally across the peer overlay without surviving bounded local staging, heterogeneous multi-lineage verification, deterministic kernel checks where applicable, and cross-cluster bridging.
+> 4. **Reciprocal Verification & Machine-Checked Due Process (PoWI):** Peer nodes share verifiable falsification certificates and proportional verification bandwidth. No sanction, quarantine writ, or binding veto shall take effect without a machine-checkable proof of violation, protecting simultaneously against adversarial contamination and false-positive majority suppression.
+> 5. **Strict Local Data Boundary:** Mesh federation operates exclusively on stripped, verifiable receipts, compliance proofs, and public artifacts; the private memory, identity, and local data of every Sovereign Citizen remain cryptographically confined to their local node.
