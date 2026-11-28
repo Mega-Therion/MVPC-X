@@ -20,6 +20,12 @@ Yield semantics (fail closed, per COVENANT.md principles 1–3):
   (``verify_integrity``) and it carries no VIOLATION finding.  A tampered or
   violated witness contributes its checks to the denominator and none to the
   numerator.
+* A check whose run errored earns no credit either: a ``STATIC_ERROR`` or
+  ``NATIVE_ERROR`` finding (the backends emit these, at WARNING severity,
+  when a checker invocation raises — a timeout, a missing binary mid-run)
+  means the check did not actually verify anything, so the witness's checks
+  stay in the denominator and none move to the numerator.  The error
+  findings themselves remain visible in the witness record.
 * A check that could not run (``coverage["checks_unavailable"]``) never
   counts as passed; it counts in the denominator and its name is surfaced at
   the top level of the feed — unavailable checks are never hidden.
@@ -47,6 +53,20 @@ def _severity_name(finding: Dict[str, Any]) -> str:
     return str(sev)
 
 
+#: Finding codes that mean a check's run errored (emitted by the backends
+#: when a checker invocation raises).  Such a check verified nothing and
+#: earns no credit, whatever the finding's severity.
+_EXECUTION_ERROR_CODES = ("STATIC_ERROR", "NATIVE_ERROR")
+
+
+def _finding_code(finding: Dict[str, Any]) -> str:
+    """Normalize a finding's code to a plain string."""
+    code = finding.get("code", "")
+    if isinstance(code, Enum):
+        return code.name
+    return str(code)
+
+
 def _witness_entry(witness: Witness) -> Dict[str, Any]:
     """Project one witness into its feed entry (see module docstring)."""
     integrity_ok = witness.verify_integrity()
@@ -55,7 +75,10 @@ def _witness_entry(witness: Witness) -> Dict[str, Any]:
     violation_count = sum(
         1 for f in witness.findings if _severity_name(f) == "VIOLATION"
     )
-    passed = bool(integrity_ok and violation_count == 0)
+    error_count = sum(
+        1 for f in witness.findings if _finding_code(f) in _EXECUTION_ERROR_CODES
+    )
+    passed = bool(integrity_ok and violation_count == 0 and error_count == 0)
     checks_passed = len(performed) if passed else 0
     return {
         "witness_id": witness.witness_id,
@@ -67,6 +90,7 @@ def _witness_entry(witness: Witness) -> Dict[str, Any]:
         "checks_performed": performed,
         "checks_unavailable": unavailable,
         "violation_count": violation_count,
+        "error_count": error_count,
         "checks_passed": checks_passed,
         "checks_total": len(performed) + len(unavailable),
     }

@@ -14,7 +14,7 @@ from mvpc.witness_feed import (
 )
 
 
-def _witness(performed, unavailable, state, violation=False):
+def _witness(performed, unavailable, state, violation=False, error=False):
     prov = Provenance(
         source_type=SourceType.HUMAN,
         origin_description="test",
@@ -40,6 +40,15 @@ def _witness(performed, unavailable, state, violation=False):
     if violation:
         claim.findings = [
             Finding("LEAN_SORRY", Severity.VIOLATION, "sorry", "LeanStatic", line=1)
+        ]
+    if error:
+        claim.findings = [
+            Finding(
+                "NATIVE_ERROR",
+                Severity.WARNING,
+                "coqc invocation timed out",
+                "CoqNative",
+            )
         ]
     claim.attestation_state = state
     return generate_witness(claim, get_policy(PolicyLevel.DEFAULT), {"os": "test"})
@@ -118,3 +127,20 @@ def test_feed_json_round_trips():
     parsed = json.loads(payload)
     assert parsed["schema"] == FEED_SCHEMA
     assert parsed["v_mech"] == 1.0
+
+
+def test_execution_error_witness_earns_no_yield():
+    # A checker invocation that raises (here: a coqc timeout, emitted by the
+    # backend as a WARNING-severity NATIVE_ERROR) verified nothing: the
+    # performed checks earn no credit, but stay in the denominator.
+    w = _witness(
+        ["Static Analysis", "Native Verification"],
+        [],
+        AttestationState.CONDITIONAL,
+        error=True,
+    )
+    feed = mechanical_witness_feed([w])
+    assert feed["v_mech"] == 0.0
+    assert feed["checks_passed"] == 0
+    assert feed["checks_total"] == 2
+    assert feed["witnesses"][0]["error_count"] == 1
